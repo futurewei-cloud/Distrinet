@@ -15,10 +15,10 @@
 ## Simple Performance Test
 #### Test In Mininet
 1. Pingall Test
-    ![avatar](./dc_topo_test_fig/dc_topo_pingall_test_in_mininet.jpg)
-1. Topo Check
-    ![avatar](./dc_topo_test_fig/dc_topo_topo_check_in_mininet.jpg)
-    ![avatar](./dc_topo_test_fig/dc_topo.jpg)
+    ![avatar](./fig/dc_topo_pingall_test_in_mininet.jpg)
+2. Topo Check
+    ![avatar](./fig/dc_topo_topo_check_in_mininet.jpg)
+    ![avatar](./fig/dc_topo.jpg)
 3. End to end bandwidth test
-    ![avatar](./dc_topo_test_fig/dc_topo_e2e_bw_test.jpg)
+    ![avatar](./fig/dc_topo_e2e_bw_test.jpg)
 #### Test In Distrinet
