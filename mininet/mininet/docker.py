@@ -34,58 +34,17 @@ def genIntfName():
 from mininet.node import Node
 from mininet.cloudlink import CloudLink
 
-# #####################
+import docker
+#######################
 class LxcNode (Node):
-    """
-    SSH node
-
-    Attributes
-    ----------
-    name : str
-        name of the node
-    run : bool
-        whether or not the node runs
-    loop : asyncio.unix_events._UnixSelectorEventLoop
-        the asyncio loop to work with
-    admin_ip : str
-        IP address to use to administrate the machine
-    target : str 
-        name of the LXC machine that runs the node
-    port : int
-        SSH port number
-    username : str
-        username used to connect to the host
-    client_keys : list
-        list of private key filenames to use to connect to the host
-    bastion : str
-        hostname of the bastion (i.e., SSH relay)
-    bastion_port : int
-        SSH port number of the bastion
-    task : _asyncio.Task
-        current task under execution
-    waiting : bool
-        waiting for a command to be executed
-    readbuf : str
-        command result buffer
-    shell : asyncssh.process.SSHClientProcess
-        Shell process
-    stdin : asyncssh.stream.SSHWriter
-        STDIN of the process
-    stdout : asyncssh.stream.SSHReader
-        STDOUT of the process
-    stderr : asyncssh.stream.SSHReader
-        STDERR of the process
-
-    master : ASsh
-        SSH connection to the master
-    containerInterfaces : dict
-        container interfaces
+    """Node that represents a docker container.
+    We use the docker-py client library to control docker.
     """
 
     adminNetworkCreated = False
     connectedToAdminNetwork = {}
 
-    def __init__(self, name, loop,
+    def __init__(self, name,  loop,
                        admin_ip,
                        master,
                        target=None, port=22, username=None, pub_id=None,
@@ -104,7 +63,7 @@ class LxcNode (Node):
         master : str
             hostname of the master node
         target : str
-            name of the LXC machine that runs the node
+            name of the docker container that runs the node
         port : int
             SSH port number to use (default is 22).
         username : str
@@ -121,7 +80,7 @@ class LxcNode (Node):
         waitStart : bool
             should we block while waiting for the node to be started (default is True)
         """
-        # == distrinet
+        # == distrinet_docker
         self._preInit(loop=loop,
                    admin_ip=admin_ip,
                    master=master,
@@ -132,7 +91,7 @@ class LxcNode (Node):
         # =====================================================================
 
         # good old Mininet
-        super(LxcNode, self).__init__(name=name, inNamespace=inNamespace, **params)
+        super(Docker, self).__init__(name=name, inNamespace=inNamespace, **params)
 
         ## ====================================================================
 
@@ -151,7 +110,7 @@ class LxcNode (Node):
         # are we blocking
         self.waitStart = waitStart
 
-        # LXC host information
+        # Docker host information
         self.target = target
         self.port = port
         self.username = username
@@ -203,12 +162,15 @@ class LxcNode (Node):
         # configure the node to be "SSH'able"
         cmds = []
         # configure the container to have
+       
+## docker exec -it replace lxc exec,maybe need container_id to replace self.name
+
         #       an admin IP address
-        cmds.append("lxc exec {} -- ifconfig admin {}".format(self.name, self.admin_ip))
+        cmds.append("docker exec -it {} -- ifconfig admin {}".format(self.name, self.admin_ip))
         #       a public key
-        cmds.append("lxc exec {} -- bash -c 'echo \"{}\" >> /root/.ssh/authorized_keys'".format(self.name, self.pub_id))
+        cmds.append("docker exec -it {} -- bash -c 'echo \"{}\" >> /root/.ssh/authorized_keys'".format(self.name, self.pub_id))
         #       a ssh server
-        cmds.append("lxc exec {} -- service ssh start".format(self.name))
+        cmds.append("docker exec -it {} -- service ssh start".format(self.name))
 
         cmd = ';'.join(cmds)
         if wait:
@@ -246,6 +208,10 @@ class LxcNode (Node):
 
     def addContainerLink(self, target1, target2, link_id, bridge1, bridge2, iface1=None,
                          vxlan_dst_port=4789, **params):
+
+## to use docker we maybe need exchange vxlan (or not)
+## https://www.xiexianbin.cn/docker/network/linux-bridge-vxlan-connect-docker/index.html
+
         """Add the link between 2 containers"""
         vxlan_name = "vx_{}".format(link_id)
         cmds = self.createContainerLinkCommandList(target1, target2, link_id, vxlan_name, bridge1, bridge2,
@@ -343,18 +309,29 @@ class LxcNode (Node):
         info ("create container ({} {} {}) ".format(self.image, self.cpu, self.memory))
         cmds = []
         # initialise the container
-        cmd = "lxc init {} {} < /dev/null ".format(self.image, self.name)
+        # cmd = "lxc init {} {} < /dev/null ".format(self.image, self.name)
+
+## https://zhuanlan.zhihu.com/p/73727916
+
+        cmd = "docker run -it {} --name {}".format(self.image, self.name)
         info ("{}\n".format(cmd))
         cmds.append(cmd)
 
         # limit resources
         if self.cpu:
-            cmds.append("lxc config set {} limits.cpu {}".format(self.name, self.cpu))
+            #cmds.append("lxc config set {} limits.cpu {}".format(self.name, self.cpu))
+            cmds.append("docker container update {} --cpuset-cpus={}".format(self.name, self.cpu))
         if self.memory:
-            cmds.append("lxc config set {} limits.memory {}".format(self.name, self.memory))
+            #cmds.append("lxc config set {} limits.memory {}".format(self.name, self.memory))
+            cmds.append("docker container update {} -m {}".format(self.name, self.memory))
+
+## maybe self.cpu's format is not paired with docker update 
 
         # start the container
-        cmds.append("lxc start {}".format(self.name))
+        #cmds.append("lxc start {}".format(self.name))
+        cmds.append("docker container start {}".format(self.name))
+
+## maybe docker run has started the container
 
         cmd = ";".join(cmds)
         self.targetSsh.sendCmd(cmd)
@@ -382,7 +359,11 @@ class LxcNode (Node):
             brname = genIntfName()
         cmds = []
         cmds.append("brctl addbr {}".format(brname))
-        cmds.append("lxc network attach {} {} {} {}".format(brname, self.name, devicename, intfName))
+
+## no referrence
+
+        #cmds.append("lxc network attach {} {} {} {}".format(brname, self.name, devicename, intfName))
+        cmds.append("docker network attach {} {} {} {}".format(brname, self.name, devicename, intfName))
         cmds.append("ip link set up {}".format(brname))
 
         cmd = ";".join(cmds)
@@ -517,7 +498,8 @@ class LxcNode (Node):
 
         cmds = []
         # destroy the container
-        cmds.append("lxc delete {} --force".format(self.name))
+        #cmds.append("lxc delete {} --force".format(self.name))
+        cmds.append("docker rmi {}".format(self.name))
 
         # remove all locally made devices
         for device in self.devices:

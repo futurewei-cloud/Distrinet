@@ -1,0 +1,143 @@
+---
+#
+- hosts      : master
+  remote_user: root
+  tasks      :
+    - name: updates apt
+      apt:
+       update_cache: yes
+
+    - name: install basic packages
+      apt: name={{item}} state=present
+      with_items:
+       - aptitude
+       - apt-transport-https
+       - ca-certificates
+       - curl
+       - python3-setuptools
+       - python3-dev
+       - build-essential
+       - python3-pip
+       - iptables
+       - software-properties-common
+
+    - name   : Download switch
+      get_url:
+        url : http://www-sop.inria.fr/members/Damien.Saucez/images/switch.tar.gz
+        dest: ~/switch.tar.gz
+        mode: 0666
+
+    - name   : Download ubuntu18:04
+      get_url:
+        url : http://www-sop.inria.fr/members/Damien.Saucez/images/ubuntu.tar.gz
+        dest: ~/ubuntu.tar.gz
+        mode: 0666
+
+#    - name   : Download Debian:10
+#      get_url:
+#        url : http://www-sop.inria.fr/members/Damien.Saucez/images/debian.tar.gz
+#        dest: ~/debian.tar.gz
+#        mode: 0666
+
+- hosts      : all
+  remote_user: root
+  tasks      :
+    - name: install python3-pip
+      apt :
+        update_cache: true
+        name        : python3-pip
+
+#    - name: install python-pip
+#      apt :
+#        name        : python-pip
+
+    - name: install htop
+      apt :
+        name: htop
+
+    - name: install ethtool
+      apt :
+        name: ethtool
+
+    - name: install bridge-utils
+      apt :
+        name: bridge-utils
+
+    - name: install net-tools
+      apt :
+        name: net-tools
+
+    - name: install pexpect
+      pip :
+        name: pexpect
+
+    - name: install ovs
+      apt :
+        name: openvswitch-switch
+
+#    - name: install btrfs-tools
+#      apt:
+#        name: btrfs-tools
+    - name: install ryu
+      apt:
+        name: python3-ryu
+
+    - name: "Check if Docker-CE is installed"
+      package_facts:
+        manager: "auto"
+
+    - name: install Docker CE repos (1/3)
+      apt_key:
+        url: https://download.docker.com/linux/ubuntu/gpg
+        state: present
+      when: "'docker-ce' not in ansible_facts.packages"
+
+    - name: install Docker CE repos (2/3)
+      shell: add-apt-repository "deb [arch=amd64] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable"
+      when: "'docker-ce' not in ansible_facts.packages"
+
+    - name: install Docker CE repos (3/3)
+      apt:
+        update_cache: yes
+      when: "'docker-ce' not in ansible_facts.packages"
+
+    - name: install Docker CE
+      apt: name=docker-ce state=present
+      when: "'docker-ce' not in ansible_facts.packages"
+
+    - name: find pip executable
+      shell: "which pip3"
+      register: pip_path
+
+    - name: install python-backports.ssl-match-hostname
+      pip: name=backports.ssl-match-hostname executable={{pip_path.stdout}}
+
+    - name: install pytest
+      pip: name=pytest version=4.6.4 executable={{pip_path.stdout}}
+
+    - name: install docker py
+      pip: name=docker version=4.4.1 executable={{pip_path.stdout}}
+    
+    - name: install python-iptables
+      pip: name=python-iptables state=latest executable={{pip_path.stdout}}
+
+    - name: install pexpect
+      pip: name=pexpect executable={{pip_path.stdout}}
+
+    - name   : distribute switch image
+      copy   :
+        src  : ~/switch.tar.gz
+        dest : ~/switch.tar.gz
+
+    - name   : distribute ubuntu image
+      copy   :
+        src  : ~/ubuntu.tar.gz
+        dest : ~/ubuntu.tar.gz
+
+    - name   : create switch image
+      command: docker import ~/switch.tar.gz switch 
+
+    - name   : create ubuntu18.04 image 
+      command: docker import ~/ubuntu.tar.gz ubuntu 
+
+
