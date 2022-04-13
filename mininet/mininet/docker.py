@@ -36,7 +36,7 @@ from mininet.cloudlink import CloudLink
 
 import docker
 #######################
-class LxcNode (Node):
+class Docker (Node):
     """Node that represents a docker container.
     We use the docker-py client library to control docker.
     """
