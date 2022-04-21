@@ -313,7 +313,7 @@ class Docker (Node):
 
 ## https://zhuanlan.zhihu.com/p/73727916
 
-        cmd = "docker run -it {} --name {}".format(self.image, self.name)
+        cmd = "docker run -itd --name {} {}".format(self.name, self.image)
         info ("{}\n".format(cmd))
         cmds.append(cmd)
 
@@ -358,12 +358,14 @@ class Docker (Node):
         if brname is None:
             brname = genIntfName()
         cmds = []
-        cmds.append("brctl addbr {}".format(brname))
+        #cmds.append("brctl addbr {}".format(brname))
 
-## no referrence
+## create a docker bridge network with brname.
+
 
         #cmds.append("lxc network attach {} {} {} {}".format(brname, self.name, devicename, intfName))
-        cmds.append("docker network attach {} {} {} {}".format(brname, self.name, devicename, intfName))
+        cmds.append("docker network create -d bridge {} -o com.docker.network.bridge.name={}".format(brname, brname))
+        cmds.append("docker network connect {} {}".format(brname, self.name))
         cmds.append("ip link set up {}".format(brname))
 
         cmd = ";".join(cmds)
@@ -499,7 +501,11 @@ class Docker (Node):
         cmds = []
         # destroy the container
         #cmds.append("lxc delete {} --force".format(self.name))
-        cmds.append("docker rmi {}".format(self.name))
+
+#first stop the container, then remove the container
+
+        cmds.append("docker stop {}".format(self.name))
+        cmds.append("docker rm {}".format(self.name))
 
         # remove all locally made devices
         for device in self.devices:
