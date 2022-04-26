@@ -1,44 +1,16 @@
 ---
-
-- hosts      : all
-  remote_user: root
-  tasks      :
-    - name  : lxd configuration
-      expect:
-        echo     : yes
-        command  : lxd init
-        timeout  : 20
-        responses:
-          (?i)Would you like to use LXD clustering?                                       : "no"
-          (?i)Do you want to configure a new storage pool?                                : "yes"
-          (?i)Name of the new storage pool                                                : "default"
-          (?i)Name of the storage backend to use                                          : "zfs"
-          (?i)Create a new BTRFS pool?                                                    : "yes"
-          (?i)Create a new ZFS pool                                                       : "yes"
-          (?i)Would you like to use an existing block device?                             : "no"
-          (?i)Would you like to use an existing empty block device                        : "no"
-          (?i)Would you like to connect to a MAAS server?                                 : "no"
-          (?i)Size in GB of the new loop device                                           : "15GB"
-          (?i)Would you like to configure LXD to use an existing bridge or host interface?: "no"
-          (?i)Would you like to create a new local network bridge?                        : "no"
-          (?i)Would you like LXD to be available over the network                         : "no"
-          (?i)Would you like the LXD server to be available over the network              : "no"
-          (?i)Would you like stale cached images to be updated automatically?             : "no"
-          (?i)Would you like a YAML                                                       : "no"
-
-
 - hosts      : all
   remote_user: root
   tasks      :
     - name   : distribute switch image
       copy   :
-        src  : ~/switch.tar.gz
-        dest : ~/switch.tar.gz
+        src  : ~/switch.tar
+        dest : ~/switch.tar
 
     - name   : distribute ubuntu image
       copy   :
-        src  : ~/ubuntu.tar.gz
-        dest : ~/ubuntu.tar.gz
+        src  : ~/ubuntu.tar
+        dest : ~/ubuntu.tar
 
 #    - name   : distribute debian image
 #      copy   :
@@ -65,11 +37,10 @@
   remote_user: root
   tasks      :
     - name   : create switch image
-      command: lxc image import ~/switch.tar.gz --alias switch --public
+      command: docker load -i ~/switch.tar 
 
     - name   : create ubuntu18.04 image -- alias ubuntu
-      command: lxc image import ~/ubuntu.tar.gz --alias ubuntu --public
-
+      command: docker load -i ~/ubuntu.tar
 #    - name   : create debian10 image -- alias debian
 #      command: lxc image import ~/debian.tar.gz --alias debian --public
 
