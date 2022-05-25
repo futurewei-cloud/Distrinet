@@ -1,0 +1,16 @@
+---
+
+- hosts      : all
+  remote_user: root
+  tasks      :
+    - name   : create switch image
+      command: docker pull caiji0419/switch 
+
+    - name   : create ubuntu18.04 image
+      command: docker pull caiji0419/ubuntu
+    
+    - name   : update ubuntu tag
+      command: docker tag caiji0419/ubuntu ubuntu
+
+    - name   : update switch tag
+      command: docker tag caiji0419/switch switch

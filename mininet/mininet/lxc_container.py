@@ -188,7 +188,7 @@ class LxcNode (Node):
                 admin_ip, prefix = admin_ip.split("/")
         self.ssh = ASsh(loop=self.loop, host=admin_ip, username=self.username, bastion=self.bastion, client_keys=self.client_keys)
 
-    def configureContainer(self, adminbr="admin-br", wait=True):
+    def configureContainer(self, adminbr="admin-br", wait=True,autoSetDocker=False):
 #        # connect the node to the admin network
 #        self.addContainerInterface(intfName="admin", brname=adminbr)
 
@@ -202,15 +202,17 @@ class LxcNode (Node):
 
         # configure the node to be "SSH'able"
         cmds = []
+        if autoSetDocker:
+            cmds.append("{}=$(docker inspect -f '{{{{.State.Pid}}}}' {})".format(self.name,self.name))
+            cmds.append("ip netns exec ${} ip addr add {} dev admin".format(self.name,self.admin_ip))
         # configure the container to have
+        else:
         #       an admin IP address
-	#cmds.append("lxc exec {} -- ifconfig admin {}".format(self.name, self.admin_ip))
-        #cmds.append("docker exec -it {}  ifconfig eth0 {}".format(self.name, self.admin_ip))
-        cmds.append("{}=$(docker inspect -f '{{{{.State.Pid}}}}' {})".format(self.name,self.name))
-        cmds.append("ip netns exec ${} ip addr add {} dev admin".format(self.name,self.admin_ip))
+            cmds.append("lxc exec {} -- ifconfig admin {}".format(self.name, self.admin_ip))
         #       a public key
-        #cmds.append("lxc exec {} -- bash -c 'echo \"{}\" >> /root/.ssh/authorized_keys'".format(self.name, self.pub_id))
-
+            cmds.append("lxc exec {} -- bash -c 'echo \"{}\" >> /root/.ssh/authorized_keys'".format(self.name, self.pub_id))
+#       a ssh server
+            cmds.append("lxc exec {} -- service ssh start".format(self.name))
         cmd = ';'.join(cmds)
         if wait:
             self.targetSsh.cmd(cmd)
@@ -341,34 +343,39 @@ class LxcNode (Node):
     def waitConnectedTarget(self):
         self.targetSsh.waitConnected()
 
-    def createContainer(self, **params): 
+    def createContainer(self,autoSetDocker=False, **params): 
 ################################################################################        time.sleep(1.0)
         info ("create container ({} {} {}) ".format(self.image, self.cpu, self.memory))
         cmds = []
         # initialise the container
-        #cmd = "lxc init {} {} < /dev/null ".format(self.image, self.name)
-        cmd = "docker run --privileged -itd --name {} --net=none {}".format(self.name, self.image)
+        if autoSetDocker:
+            cmd = "docker run --privileged -itd --name {} --net=none {}".format(self.name, self.image)
+        else:
+            cmd = "lxc init {} {} < /dev/null ".format(self.image, self.name)
         info ("{}\n".format(cmd))
         cmds.append(cmd)
-
         # limit resources
-        if self.cpu:
+        if autoSetDocker:
+            if self.cpu:
             #cmds.append("lxc config set {} limits.cpu {}".format(self.name, self.cpu))
-            cmds.append("docker container update --cpuset-cpus={} {}".format(self.cpu, self.name))
-        if self.memory:
+                cmds.append("docker container update --cpuset-cpus={} {}".format(self.cpu, self.name))
+            if self.memory:
             #cmds.append("lxc config set {} limits.memory {}".format(self.name, self.memory))
-            cmds.append("docker container update -m {} {}".format(self.memory, self.name))
+                cmds.append("docker container update -m {} {}".format(self.memory, self.name))
 
-        # start the container
-        #cmds.append("lxc start {}".format(self.name))
-        cmds.append("docker start {}".format(self.name))
-        if self.image=="switch":
-            cmds.append("docker exec {} bash -c 'export PATH=$PATH:/usr/local/share/openvswitch/scripts;ovs-ctl start'".format(self.name))
-        cmds.append("docker exec {} mkdir /root/.ssh".format(self.name))
-        cmds.append("docker exec {} bash -c 'echo \"{}\" >> /root/.ssh/authorized_keys'".format(self.name, self.pub_id))
-        #       a ssh server
-        #cmds.append("lxc exec {} -- service ssh start".format(self.name))
-        cmds.append("docker exec -itd {} service ssh start".format(self.name))
+            cmds.append("docker start {}".format(self.name))
+            if self.image=="switch":
+                cmds.append("docker exec {} bash -c 'export PATH=$PATH:/usr/share/openvswitch/scripts;ovs-ctl start'".format(self.name))
+            cmds.append("docker exec {} mkdir /root/.ssh".format(self.name))
+            cmds.append("docker exec {} bash -c 'echo \"{}\" >> /root/.ssh/authorized_keys'".format(self.name, self.pub_id))
+            cmds.append("docker exec {} service ssh start".format(self.name))
+        else:
+            if self.cpu:
+                cmds.append("lxc config set {} limits.cpu {}".format(self.name, self.cpu))
+            if self.memory:
+                cmds.append("lxc config set {} limits.memory {}".format(self.name, self.memory))
+            # start the container
+            cmds.append("lxc start {}".format(self.name))
 
 
 
@@ -387,7 +394,7 @@ class LxcNode (Node):
         info ("container created")
 
 
-    def addContainerInterface(self, intfName, devicename=None, brname=None, wait=True, **params):
+    def addContainerInterface(self, intfName, devicename=None, brname=None, wait=True, autoSetDocker=False,**params):
         """
         Add the interface with name intfName to the container that is
         associated to the bridge named name-intfName-br on the host
@@ -398,22 +405,18 @@ class LxcNode (Node):
             brname = genIntfName()
         cmds = []
         cmds.append("brctl addbr {}".format(brname))
-        cmds.append("ip link add {} type veth peer name {}".format("veth"+devicename,devicename))
-        cmds.append("brctl addif {} {}".format(brname,devicename))
-        cmds.append("ip link set up {}".format(devicename))
-        cmds.append("{}=$(docker inspect -f '{{{{.State.Pid}}}}' {})".format(self.name,self.name))
-        cmds.append("ln -s /proc/{}/ns/net /var/run/netns/${}".format("$"+self.name,self.name))
-        cmds.append("ip link set {} netns ${}".format("veth"+devicename,self.name))
-        cmds.append("ip netns exec ${} ip link set dev {} name {}".format(self.name,"veth"+devicename,intfName))
-        cmds.append("ip netns exec ${} ip link set {} up".format(self.name,intfName))
-        #cmds.append("lxc network attach {} {} {} {}".format(brname, self.name, devicename, intfName))
-        #cmds.append("lxc network attach {} {} {} {}".format(brname, self.name, devicename, intfName))
-	#cmds.append("docker network connect {} {}".format(brname, container_id))
-        #cmds.append("docker network create -d bridge {} -o com.docker.network.bridge.name={}".format(brname, brname))
-        #cmds.append("docker network connect {} {}".format(brname, self.name))
+        if autoSetDocker:
+            cmds.append("ip link add {} type veth peer name {}".format("veth"+devicename,devicename))
+            cmds.append("brctl addif {} {}".format(brname,devicename))
+            cmds.append("ip link set up {}".format(devicename))
+            cmds.append("{}=$(docker inspect -f '{{{{.State.Pid}}}}' {})".format(self.name,self.name))
+            cmds.append("ln -s /proc/{}/ns/net /var/run/netns/${}".format("$"+self.name,self.name))
+            cmds.append("ip link set {} netns ${}".format("veth"+devicename,self.name))
+            cmds.append("ip netns exec ${} ip link set dev {} name {}".format(self.name,"veth"+devicename,intfName))
+            cmds.append("ip netns exec ${} ip link set {} up".format(self.name,intfName))
+        else:
+            cmds.append("lxc network attach {} {} {} {}".format(brname, self.name, devicename, intfName))
         cmds.append("ip link set up {}".format(brname))
-        cmds.append("iptables -A FORWARD -o {} -j ACCEPT".format(brname))
-        cmds.append("iptables -A FORWARD -i {} -j ACCEPT".format(brname))
         cmd = ";".join(cmds)
 
         if wait:
@@ -540,15 +543,16 @@ class LxcNode (Node):
     # Subshell I/O, commands and control
 
     # XXX - OK
-    def terminate( self ):
+    def terminate( self ,autoSetDocker=False):
         "Send kill signal to Node and clean up after it."
         self.unmountPrivateDirs()
 
         cmds = []
         # destroy the container
-        #cmds.append("lxc delete {} --force".format(self.name))
-        cmds.append("docker rm -f {}".format(self.name))
-
+        if autoSetDocker:
+            cmds.append("docker rm -f {}".format(self.name))
+        else:
+            cmds.append("lxc delete {} --force".format(self.name))
         # remove all locally made devices
         for device in self.devices:
             cmds.append("ip link delete {}".format(device))
@@ -677,3 +681,4 @@ class LxcNode (Node):
         exitcode = process.returncode
         
         return out, err, exitcode
+

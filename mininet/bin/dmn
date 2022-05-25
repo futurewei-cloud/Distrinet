@@ -302,6 +302,8 @@ class DistrinetRunner( object ):
                          help='base IP address for hosts' )
         opts.add_option( '--mac', action='store_true',
                          default=False, help='automatically set host MACs' )
+        opts.add_option('--docker',action='store_true',
+                         default=False,help='replace lxd with docker' )
         opts.add_option( '--arp', action='store_true',
                          default=False, help='set all-pairs ARP entries' )
         opts.add_option( '--verbosity', '-v', type='choice',
@@ -616,6 +618,7 @@ class DistrinetRunner( object ):
                   link=link,
                   ipBase=opts.ipbase, inNamespace=opts.innamespace,
                   xterms=opts.xterms, autoSetMacs=opts.mac,
+                  autoSetDocker=opts.docker,
                   autoStaticArp=opts.arp, autoPinCpus=opts.pin,
                   listenPort=opts.listenport )
 
@@ -710,3 +713,4 @@ if __name__ == "__main__":
         stackTrace = traceback.format_exc()
         debug( stackTrace + "\n" )
         cleanup()
+

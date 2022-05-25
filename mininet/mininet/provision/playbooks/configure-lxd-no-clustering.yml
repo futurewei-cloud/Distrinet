@@ -1,18 +1,42 @@
 ---
+
+- hosts      : all
+  remote_user: root
+  tasks      :
+    - name  : lxd configuration
+      expect:
+        echo     : yes
+        command  : lxd init
+        timeout  : 20
+        responses:
+          (?i)Would you like to use LXD clustering?                                       : "no"
+          (?i)Do you want to configure a new storage pool?                                : "yes"
+          (?i)Name of the new storage pool                                                : "default"
+          (?i)Name of the storage backend to use                                          : "dir"
+          (?i)Would you like to connect to a MAAS server?                                 : "no"
+          (?i)Would you like to create a new local network bridge?                        : "yes"
+          (?i)What should the new bridge be called?                                       : "lxdbr0"
+          (?i)What IPv4 address should be used?                                           : "auto"
+          (?i)What IPv6 address should be used?                                           : "auto"
+          (?i)Would you like LXD to be available over the network?                        : "no"
+          (?i)Would you like stale cached images to be updated automatically?             : "yes"
+          (?i)Would you like a YAML "lxd init" preseed to be printed?                     : "no"
+
+
 - hosts      : all
   remote_user: root
   tasks      :
     - name   : distribute switch image
       copy   :
-        src  : ~/switch.tar
-        dest : ~/switch.tar
+        src  : ~/switch.tar.gz
+        dest : ~/switch.tar.gz
 
     - name   : distribute ubuntu image
       copy   :
-        src  : ~/ubuntu.tar
-        dest : ~/ubuntu.tar
+        src  : ~/ubuntu.tar.gz
+        dest : ~/ubuntu.tar.gz
 
-#    - name   : distribute debian image
+###    - name   : distribute debian image
 #      copy   :
 #        src  : ~/debian.tar.gz
 #        dest : ~/debian.tar.gz
@@ -28,7 +52,7 @@
 #        dest : ~/ubuntu-hadoop-slave.tar.gz
 
 
-#    - name   : distribute onos image
+#   - name   : distribute onos image
 #      copy   :
 #        src  : ~/ubuntu-onos-2.1.0.tar.gz
 #        dest : ~/ubuntu-onos-2.1.0.tar.gz
@@ -37,10 +61,11 @@
   remote_user: root
   tasks      :
     - name   : create switch image
-      command: docker load -i ~/switch.tar 
+      command: lxc image import ~/switch.tar.gz --alias switch --public
 
     - name   : create ubuntu18.04 image -- alias ubuntu
-      command: docker load -i ~/ubuntu.tar
+      command: lxc image import ~/ubuntu.tar.gz --alias ubuntu --public
+
 #    - name   : create debian10 image -- alias debian
 #      command: lxc image import ~/debian.tar.gz --alias debian --public
 

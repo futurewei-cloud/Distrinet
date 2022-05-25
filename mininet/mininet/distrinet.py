@@ -140,7 +140,7 @@ class Distrinet( Mininet ):
                   mapper=None,
                   build=True, xterms=False, cleanup=False, ipBase='10.0.0.0/8',
                   adminIpBase='192.168.0.1/8',
-                  autoSetMacs=False, autoPinCpus=False,
+                  autoSetMacs=False, autoSetDocker=False,autoPinCpus=False,
                   listenPort=None, waitConnected=False, waitConnectionTimeout=5, 
                   jump=None, user="root", client_keys=None, master=None, pub_id=None,
                   **kwargs):
@@ -190,6 +190,7 @@ class Distrinet( Mininet ):
         self.xterms = xterms
         self.cleanup = cleanup
         self.autoSetMacs = autoSetMacs
+        self.autoSetDocker=autoSetDocker
 #        self.autoStaticArp = autoStaticArp
         self.autoPinCpus = autoPinCpus
 #        self.numCores = numCores()
@@ -387,7 +388,7 @@ class Distrinet( Mininet ):
         # Set default MAC - this should probably be in Link
         options.setdefault( 'addr1', self.randMac() )
         options.setdefault( 'addr2', self.randMac() )
-       
+        options.setdefault('autoSetDocker',self.autoSetDocker)
         params1 = None
         params2 = None
         if self.mapper:
@@ -530,7 +531,7 @@ class Distrinet( Mininet ):
             count = 0
             for node in nodes:
                 _info ("createContainer {} ".format( node.name))
-                node.createContainer()
+                node.createContainer(autoSetDocker=self.autoSetDocker)
                 count += 1
                 if count > 50:
                     output("50 nodes created...\n")
@@ -543,7 +544,7 @@ class Distrinet( Mininet ):
            
             for node in nodes:
                 _info ("create admin interface {} ".format( node.name))
-                node.addContainerInterface(intfName="admin", brname="admin-br", wait=False)
+                node.addContainerInterface(intfName="admin", brname="admin-br", wait=False,autoSetDocker=self.autoSetDocker)
 
             for node in nodes:
                 node.targetSshWaitOutput()
@@ -558,7 +559,7 @@ class Distrinet( Mininet ):
                 self.masterSsh.cmd(cmd) 
 
             for node in nodes:
-                node.configureContainer(wait=False)
+                node.configureContainer(wait=False,autoSetDocker=self.autoSetDocker)
             for node in nodes:
                 node.targetSshWaitOutput()
 
@@ -688,12 +689,12 @@ class Distrinet( Mininet ):
             info( switch.name + ' ' )
             if switch not in stopped:
                 switch.stop()
-            switch.terminate()
+            switch.terminate(autoSetDocker=self.autoSetDocker)
         info( '\n' )
         info( '*** Stopping %i hosts\n' % len( self.hosts ) )
         for host in self.hosts:
             info( host.name + ' ' )
-            host.terminate()
+            host.terminate(autoSetDocker=self.autoSetDocker)
 
         info( '*** Stopping %i controllers\n' % len( self.controllers ) )
         for controller in self.controllers:
@@ -873,5 +874,3 @@ class MininetWithControlNet( Mininet ):
                 error( '*** Error: control network test failed\n' )
                 exit( 1 )
         info( '\n' )
-
-

@@ -39,7 +39,7 @@ class CloudLink( Link ):
     def __init__( self, node1, node2, port1=None, port2=None,
                   intfName1=None, intfName2=None, addr1=None, addr2=None,
                   intf=TCIntf, cls1=None, cls2=None, params1=None,
-                  params2=None, fast=True, **params ):
+                  params2=None, fast=True,autoSetDocker=False, **params ):
         """Create veth link to another node, making two new interfaces.
            node1: first node
            node2: second node
@@ -88,7 +88,7 @@ class CloudLink( Link ):
 
         # Make interfaces
         interfaces = self.makeIntfPair( intfName1, intfName2, addr1, addr2,
-                           node1, node2, deleteIntfs=False )
+                           node1, node2, deleteIntfs=False,autoSetDocker=autoSetDocker )
 
         if not cls1:
             cls1 = intf
@@ -133,7 +133,7 @@ class CloudLink( Link ):
 
     @classmethod
     def makeIntfPair( cls, intfname1, intfname2, addr1=None, addr2=None,
-                      node1=None, node2=None, deleteIntfs=True ):
+                      node1=None, node2=None, deleteIntfs=True,autoSetDocker=False ):
         """Create pair of interfaces
            intfname1: name for interface 1
            intfname2: name for interface 2
@@ -151,8 +151,8 @@ class CloudLink( Link ):
             raise Exception("Must implement delete interface")
 
         # Add the interface on both ends:
-        br1 = node1.addContainerInterface(intfName=intfname1)
-        br2 = node2.addContainerInterface(intfName=intfname2)
+        br1 = node1.addContainerInterface(intfName=intfname1,autoSetDocker=autoSetDocker)
+        br2 = node2.addContainerInterface(intfName=intfname2,autoSetDocker=autoSetDocker)
         
         return (br1, br2)
 
