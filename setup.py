@@ -18,7 +18,7 @@ print(f"packages required from requirements.txt: {required}")
 
 #install mininet
 system("mininet/util/install.sh -a")
-system("sudo pip3 install git+https://github.com/Giuseppe1992/mapping_distrinet-1.git")
+system("sudo pip3 install git+http://github.com/Giuseppe1992/mapping_distrinet-1.git")
 
 setup(
     name='Distrinet',
@@ -38,3 +38,4 @@ setup(
     include_package_data = True,
     zip_safe = True
 )
+
