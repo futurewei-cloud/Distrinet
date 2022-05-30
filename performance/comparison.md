@@ -26,37 +26,37 @@ There are 6 hosts and 6 switches in the topology.
 
 - pingall
 
-![](.\img\lxd\6pingall.png)
+![](./img/lxd/6pingall.png)
 
 - links
 
-![](.\img\lxd\6links.png)
+![](./img/lxd/6links.png)
 
 - worker containers
 
-![](.\img\lxd\6worker_containers.png)
+![](./img/lxd/6worker_containers.png)
 
 - iperf
 
-![](.\img\lxd\6iperf.png)
+![](./img/lxd/6iperf.png)
 
 ### docker container
 
 - pingall
 
-![](.\img\docker\6pingall.png)
+![](./img/docker/6pingall.png)
 
 - links
 
-![](.\img\docker\6links.png)
+![](./img/docker/6links.png)
 
 - worker containers
 
-![](.\img\docker\6worker_containers.png)
+![](./img/docker/6worker_containers.png)
 
 - iperf
 
-![](.\img\docker\6iperf.png)
+![](./img/docker/6iperf.png)
 
 ## Binary tree (depth = 3)
 
@@ -66,37 +66,37 @@ There are 8 hosts and 7 switches in the tree topology.
 
 - pingall
 
-![](.\img\lxd\tree_32_pingall.png)
+![](./img/lxd/tree_32_pingall.png)
 
 - links & net
 
-![](.\img\lxd\tree_32_links_and_net.png)
+![](./img/lxd/tree_32_links_and_net.png)
 
 - worker containers
 
-![](.\img\lxd\tree_32_worker_containers.png)
+![](./img/lxd/tree_32_worker_containers.png)
 
 - iperf
 
-![](.\img\lxd\tree_32_iperf.png)
+![](./img/lxd/tree_32_iperf.png)
 
 ### docker container
 
 - pingall
 
-![](.\img\docker\tree_32_pingall.png)
+![](./img/docker/tree_32_pingall.png)
 
 - links & net
 
-![](.\img\docker\tree_32_links_and_net.png)
+![](./img/docker/tree_32_links_and_net.png)
 
 - worker containers
 
-![](.\img\docker\tree_32_worker_containers.png)
+![](./img/docker/tree_32_worker_containers.png)
 
 - iperf
 
-![](.\img\docker\tree_32_iperf.png)
+![](./img/docker/tree_32_iperf.png)
 
 ## Customized topology
 
@@ -104,43 +104,43 @@ There are 8 hosts and 7 switches in the tree topology.
 
 There are 8 hosts and 10 switches in the customized topology.
 
-![](.\img\dc_topo.png)
+![](./img/dc_topo.png)
 
 ### lxd container
 
 - pingall
 
-![](.\img\lxd\custom_pingall.png)
+![](./img/lxd/custom_pingall.png)
 
 - links & net
 
-![](.\img\lxd\custom_links.png)
+![](./img/lxd/custom_links.png)
 
 - worker containers
 
-![](.\img\lxd\custom_container.png)
+![](./img/lxd/custom_container.png)
 
 - iperf
 
-![](.\img\lxd\custom_iperf.png)
+![](./img/lxd/custom_iperf.png)
 
 ### docker container
 
 - pingall
 
-![](.\img\docker\custom_pingall.png)
+![](./img/docker/custom_pingall.png)
 
 - links & net
 
-![](.\img\docker\custom_links.png)
+![](./img/docker/custom_links.png)
 
 - worker containers
 
-![](.\img\docker\custom_container.png)
+![](./img/docker/custom_container.png)
 
 - iperf
 
-![](.\img\docker\custom_iperf.png)
+![](./img/docker/custom_iperf.png)
 
 # Scale Comparison
 
@@ -150,21 +150,21 @@ We test **the maximum scale of linear topology** that two tools can support. It 
 
 90 hosts and 90 switches can be established.
 
-![](.\img\lxd\90.png)
+![](./img/lxd/90.png)
 
 However, when establishing 99 hosts and 99 switches, this error occurred.
 
-![](.\img\lxd\99.png)
+![](./img/lxd/99.png)
 
 ## docker container: at least 400
 
 300 hosts and 300 switches can be established.
 
-![](.\img\docker\300start.png)
+![](./img/docker/300start.png)
 
 400 hosts and 400 switches can be established.However, some packages are lost.
 
-![](.\img\docker\400ping.png)
+![](./img/docker/400ping.png)
 
 # Time Comparison
 
