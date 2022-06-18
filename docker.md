@@ -35,6 +35,7 @@ This document is the development and testing document for `issue25:Investigate t
   sysctl net.ipv4.conf.all.forwarding=1  
   iptables --policy FORWARD ACCEPT
   mkdir /var/run/netns
+  ulimit -n 196835
   ```
 
 * Experimental environment Configuration
