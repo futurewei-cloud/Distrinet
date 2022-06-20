@@ -12,15 +12,19 @@
           (?i)Would you like to use LXD clustering?                                       : "no"
           (?i)Do you want to configure a new storage pool?                                : "yes"
           (?i)Name of the new storage pool                                                : "default"
-          (?i)Name of the storage backend to use                                          : "dir"
+          (?i)Name of the storage backend to use                                          : "zfs"
+          (?i)Create a new BTRFS pool?                                                    : "yes"
+          (?i)Create a new ZFS pool                                                       : "yes"
+          (?i)Would you like to use an existing block device?                             : "no"
+          (?i)Would you like to use an existing empty block device                        : "no"
           (?i)Would you like to connect to a MAAS server?                                 : "no"
-          (?i)Would you like to create a new local network bridge?                        : "yes"
-          (?i)What should the new bridge be called?                                       : "lxdbr0"
-          (?i)What IPv4 address should be used?                                           : "auto"
-          (?i)What IPv6 address should be used?                                           : "auto"
-          (?i)Would you like LXD to be available over the network?                        : "no"
-          (?i)Would you like stale cached images to be updated automatically?             : "yes"
-          (?i)Would you like a YAML "lxd init" preseed to be printed?                     : "no"
+          (?i)Size in GB of the new loop device                                           : "15GB"
+          (?i)Would you like to configure LXD to use an existing bridge or host interface?: "no"
+          (?i)Would you like to create a new local network bridge?                        : "no"
+          (?i)Would you like LXD to be available over the network                         : "no"
+          (?i)Would you like the LXD server to be available over the network              : "no"
+          (?i)Would you like stale cached images to be updated automatically?             : "no"
+          (?i)Would you like a YAML                                                       : "no"
 
 
 - hosts      : all
@@ -36,7 +40,7 @@
         src  : ~/ubuntu.tar.gz
         dest : ~/ubuntu.tar.gz
 
-###    - name   : distribute debian image
+#    - name   : distribute debian image
 #      copy   :
 #        src  : ~/debian.tar.gz
 #        dest : ~/debian.tar.gz
@@ -52,7 +56,7 @@
 #        dest : ~/ubuntu-hadoop-slave.tar.gz
 
 
-#   - name   : distribute onos image
+#    - name   : distribute onos image
 #      copy   :
 #        src  : ~/ubuntu-onos-2.1.0.tar.gz
 #        dest : ~/ubuntu-onos-2.1.0.tar.gz

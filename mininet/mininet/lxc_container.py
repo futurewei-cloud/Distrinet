@@ -349,7 +349,7 @@ class LxcNode (Node):
         cmds = []
         # initialise the container
         if autoSetDocker:
-            cmd = "docker run --privileged -itd --name {} --net=none {}".format(self.name, self.image)
+            cmd = "docker create -v /root/alcor-control-agent/:/mnt/host/code -it --privileged --cap-add=NET_ADMIN --cap-add=SYS_PTRACE --security-opt seccomp=unconfined --name {} --net=none {} /bin/bash".format(self.name, self.image)
         else:
             cmd = "lxc init {} {} < /dev/null ".format(self.image, self.name)
         info ("{}\n".format(cmd))
@@ -366,6 +366,7 @@ class LxcNode (Node):
             cmds.append("docker start {}".format(self.name))
             if self.image=="switch":
                 cmds.append("docker exec {} bash -c 'export PATH=$PATH:/usr/share/openvswitch/scripts;ovs-ctl start'".format(self.name))
+            cmds.append("docker exec {} sh /root/init.sh".format(self.name))
             cmds.append("docker exec {} mkdir /root/.ssh".format(self.name))
             cmds.append("docker exec {} bash -c 'echo \"{}\" >> /root/.ssh/authorized_keys'".format(self.name, self.pub_id))
             cmds.append("docker exec {} service ssh start".format(self.name))
