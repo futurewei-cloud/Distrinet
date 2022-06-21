@@ -38,7 +38,6 @@ from mininet.cloudlink import CloudLink
 class LxcNode (Node):
     """
     SSH node
-
     Attributes
     ----------
     name : str
@@ -75,7 +74,6 @@ class LxcNode (Node):
         STDOUT of the process
     stderr : asyncssh.stream.SSHReader
         STDERR of the process
-
     master : ASsh
         SSH connection to the master
     containerInterfaces : dict
@@ -366,7 +364,7 @@ class LxcNode (Node):
             cmds.append("docker start {}".format(self.name))
             if self.image=="switch":
                 cmds.append("docker exec {} bash -c 'export PATH=$PATH:/usr/share/openvswitch/scripts;ovs-ctl start'".format(self.name))
-            cmds.append("docker exec {} sh /root/init.sh".format(self.name))
+            cmds.append("docker exec {} bash -c 'cd /mnt/host/code;/etc/init.d/openvswitch-switch restart;ovs-vswitchd --pidfile --detach'".format(self.name))
             cmds.append("docker exec {} mkdir /root/.ssh".format(self.name))
             cmds.append("docker exec {} bash -c 'echo \"{}\" >> /root/.ssh/authorized_keys'".format(self.name, self.pub_id))
             cmds.append("docker exec {} service ssh start".format(self.name))
@@ -682,4 +680,3 @@ class LxcNode (Node):
         exitcode = process.returncode
         
         return out, err, exitcode
-
