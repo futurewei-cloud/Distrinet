@@ -349,10 +349,13 @@ class LxcNode (Node):
         cmds = []
         # initialise the container
         if autoSetDocker:
-            cmd = "docker run -v /root/alcor-control-agent/:/mnt/host/code -it --privileged --cap-add=NET_ADMIN --cap-add=SYS_PTRACE --security-opt seccomp=unconfined --name {} --net=none {} /bin/bash < /dev/null ".format(self.name, self.image)
+            if self.image=="ubuntu":
+                cmd = "docker run -v /root/alcor-control-agent/:/mnt/host/code -itd --privileged --cap-add=NET_ADMIN --cap-add=SYS_PTRACE --security-opt seccomp=unconfined --name {} --net=none {} /bin/bash".format(self.name, self.image)
+            else:
+                cmd="docker run -itd --privileged --cap-add=NET_ADMIN --cap-add=SYS_PTRACE --security-opt seccomp=unconfined --name {} --net=none {} /bin/bash".format(self.name, self.image) 
         else:
             cmd = "lxc init {} {} < /dev/null ".format(self.image, self.name)
-        info ("{}\n".format(cmd))
+        info("{}\n".format(cmd))
         cmds.append(cmd)
         # limit resources
         if autoSetDocker:
@@ -373,9 +376,6 @@ class LxcNode (Node):
                 cmds.append("lxc config set {} limits.memory {}".format(self.name, self.memory))
             # start the container
             cmds.append("lxc start {}".format(self.name))
-
-
-
         cmd = ";".join(cmds)
         self.targetSsh.sendCmd(cmd)
 

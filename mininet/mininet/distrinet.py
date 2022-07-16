@@ -519,7 +519,7 @@ class Distrinet( Mininet ):
         if not waitStart:
             nodes = self.hosts + self.switches
 
-            _info ("[starting\n")
+            info ("[starting\n")
             for node in nodes:
                 _info ("connectTarget {} ".format( node.name))
                 node.connectTarget()
@@ -541,7 +541,7 @@ class Distrinet( Mininet ):
             for node in nodes:
                 node.waitCreated()
                 _info ("createdContainer {} ".format(node.name))
-           
+            _info ("nodes created\n")
             for node in nodes:
                 _info ("create admin interface {} ".format( node.name))
                 node.addContainerInterface(intfName="admin", brname="admin-br", wait=False,autoSetDocker=self.autoSetDocker)
@@ -572,14 +572,14 @@ class Distrinet( Mininet ):
                 _info ("connected {} ".format( node.name))
 
             for node in nodes:
-                _info ("startshell {} ".format( node.name) )
+                info ("startshell {} ".format( node.name) )
                 node.asyncStartShell()
             for node in nodes:
                 node.waitStarted()
-                _info ("startedshell {}".format( node.name))
+                info ("startedshell {}".format( node.name))
 
             for node in nodes:
-                _info ("finalize {}".format( node.name))
+                info ("finalize {}".format( node.name))
                 node.finalizeStartShell()
             _info ("\n")
 

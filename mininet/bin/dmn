@@ -550,6 +550,7 @@ class DistrinetRunner( object ):
         if opts.workers:
             workers = opts.workers.split( ',' )
             master = workers[0]
+            workers=workers[1:]
 
         if opts.workers or opts.provision or opts.placement_file_path:
             warn( '*** WARNING: Experimental cloud mode!\n'
@@ -587,7 +588,6 @@ class DistrinetRunner( object ):
                 # get the info from the experiment file
                 jump=experiment_data["bastion"]
                 workers=experiment_data["workers"]
-                master=workers[0]
                 # use the dummy mapper with the placement in the experiment file
                 mapper= DummyMapper(places=experiment_data["mapping"])
 
