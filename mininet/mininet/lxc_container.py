@@ -201,6 +201,8 @@ class LxcNode (Node):
         # configure the node to be "SSH'able"
         cmds = []
         if autoSetDocker:
+            cmds.append("docker exec {} bash -c 'echo \"{}\" >> /root/.ssh/authorized_keys'".format(self.name, self.pub_id))
+            cmds.append("docker exec {} service ssh start".format(self.name))
             cmds.append("{}=$(docker inspect -f '{{{{.State.Pid}}}}' {})".format(self.name,self.name))
             cmds.append("ip netns exec ${} ip addr add {} dev admin".format(self.name,self.admin_ip))
         # configure the container to have
@@ -347,7 +349,7 @@ class LxcNode (Node):
         cmds = []
         # initialise the container
         if autoSetDocker:
-            cmd = "docker create -v /root/alcor-control-agent/:/mnt/host/code -it --privileged --cap-add=NET_ADMIN --cap-add=SYS_PTRACE --security-opt seccomp=unconfined --name {} --net=none {} /bin/bash".format(self.name, self.image)
+            cmd = "docker run -v /root/alcor-control-agent/:/mnt/host/code -it --privileged --cap-add=NET_ADMIN --cap-add=SYS_PTRACE --security-opt seccomp=unconfined --name {} --net=none {} /bin/bash < /dev/null ".format(self.name, self.image)
         else:
             cmd = "lxc init {} {} < /dev/null ".format(self.image, self.name)
         info ("{}\n".format(cmd))
@@ -361,13 +363,9 @@ class LxcNode (Node):
             #cmds.append("lxc config set {} limits.memory {}".format(self.name, self.memory))
                 cmds.append("docker container update -m {} {}".format(self.memory, self.name))
 
-            cmds.append("docker start {}".format(self.name))
             if self.image=="switch":
                 cmds.append("docker exec {} bash -c 'export PATH=$PATH:/usr/share/openvswitch/scripts;ovs-ctl start'".format(self.name))
-            cmds.append("docker exec {} bash -c 'cd /mnt/host/code;/etc/init.d/openvswitch-switch restart;ovs-vswitchd --pidfile --detach'".format(self.name))
-            cmds.append("docker exec {} mkdir /root/.ssh".format(self.name))
-            cmds.append("docker exec {} bash -c 'echo \"{}\" >> /root/.ssh/authorized_keys'".format(self.name, self.pub_id))
-            cmds.append("docker exec {} service ssh start".format(self.name))
+                cmds.append("docker exec {} bash -c 'cd /mnt/host/code;/etc/init.d/openvswitch-switch restart;ovs-vswitchd --pidfile --detach'".format(self.name))
         else:
             if self.cpu:
                 cmds.append("lxc config set {} limits.cpu {}".format(self.name, self.cpu))
