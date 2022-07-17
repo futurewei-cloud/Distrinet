@@ -359,6 +359,7 @@ class LxcNode (Node):
         cmds.append(cmd)
         # limit resources
         if autoSetDocker:
+            cmds.append("docker start {}".format(self.name))
             if self.cpu:
             #cmds.append("lxc config set {} limits.cpu {}".format(self.name, self.cpu))
                 cmds.append("docker container update --cpuset-cpus={} {}".format(self.cpu, self.name))
@@ -368,8 +369,8 @@ class LxcNode (Node):
 
             if self.image=="switch":
                 cmds.append("docker exec {} bash -c 'export PATH=$PATH:/usr/share/openvswitch/scripts;ovs-ctl start'".format(self.name))
+            else:
                 cmds.append("docker exec {} bash -c 'cd /mnt/host/code;/etc/init.d/openvswitch-switch restart;ovs-vswitchd --pidfile --detach'".format(self.name))
-            cmds.append("docker start {}".format(self.name))
         else:
             if self.cpu:
                 cmds.append("lxc config set {} limits.cpu {}".format(self.name, self.cpu))
