@@ -569,7 +569,7 @@ class Distrinet( Mininet ):
 
             for node in nodes:
                 node.waitConnected()
-                _info ("connected {} ".format( node.name))
+                info ("connected {} ".format( node.name))
 
             for node in nodes:
                 info ("startshell {} ".format( node.name) )
