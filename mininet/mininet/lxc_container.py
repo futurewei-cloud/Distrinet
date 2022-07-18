@@ -201,7 +201,7 @@ class LxcNode (Node):
         # configure the node to be "SSH'able"
         cmds = []
         if autoSetDocker:
-            #cmds.append("docker exec {} bash -c 'echo \"{}\" >> /root/.ssh/authorized_keys'".format(self.name, self.pub_id))
+            cmds.append("docker exec {} bash -c 'echo \"{}\" >> /root/.ssh/authorized_keys'".format(self.name, self.pub_id))
             #cmds.append("docker exec {} service ssh start".format(self.name))
             cmds.append("docker exec {} ifconfig admin {}".format(self.name,self.admin_ip))
         # configure the container to have
@@ -349,16 +349,16 @@ class LxcNode (Node):
         # initialise the container
         if autoSetDocker:
             if self.image=="ubuntu":
-                cmd = "docker create -v /root/alcor-control-agent/:/mnt/host/code -it --privileged --cap-add=NET_ADMIN --cap-add=SYS_PTRACE --security-opt seccomp=unconfined --name {} --net=none {} /bin/bash".format(self.name, self.image)
+                cmd = "docker create -v /root/alcor-control-agent/:/mnt/host/code -it --privileged --cap-add=NET_ADMIN --cap-add=SYS_PTRACE --security-opt seccomp=unconfined --name {} --net=none {}".format(self.name, self.image)
             else:
-                cmd="docker create -it --privileged --cap-add=NET_ADMIN --cap-add=SYS_PTRACE --security-opt seccomp=unconfined --name {} --net=none {} /bin/bash".format(self.name, self.image) 
+                cmd="docker create -it --privileged --cap-add=NET_ADMIN --cap-add=SYS_PTRACE --security-opt seccomp=unconfined --name {} --net=none {}".format(self.name, self.image) 
         else:
             cmd = "lxc init {} {} < /dev/null ".format(self.image, self.name)
         info("{}\n".format(cmd))
         cmds.append(cmd)
         # limit resources
         if autoSetDocker:
-            cmds.append("docker start {};docker exec {} service ssh start".format(self.name,self.name))
+            cmds.append("docker start {}".format(self.name))
             if self.cpu:
             #cmds.append("lxc config set {} limits.cpu {}".format(self.name, self.cpu))
                 cmds.append("docker container update --cpuset-cpus={} {}".format(self.cpu, self.name))
