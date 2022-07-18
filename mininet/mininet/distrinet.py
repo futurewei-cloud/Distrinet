@@ -533,18 +533,23 @@ class Distrinet( Mininet ):
                 _info ("createContainer {} ".format( node.name))
                 node.createContainer(autoSetDocker=self.autoSetDocker)
                 count += 1
-                if count > 50:
-                    output("50 nodes created...\n")
+                if count > 100:
+                    output("100 nodes created...\n")
                     sleep(10)
                     count = 0
-
+            
             for node in nodes:
                 node.waitCreated()
                 _info ("createdContainer {} ".format(node.name))
             _info ("nodes created\n")
+            count=0
             for node in nodes:
                 _info ("create admin interface {} ".format( node.name))
                 node.addContainerInterface(intfName="admin", brname="admin-br", wait=False,autoSetDocker=self.autoSetDocker)
+                count+=1
+                if count>100:
+                    sleep(10)
+                    count=0
 
             for node in nodes:
                 node.targetSshWaitOutput()
@@ -557,9 +562,15 @@ class Distrinet( Mininet ):
             if len (cmds) > 0:
                 cmd = ';'.join(cmds)
                 self.masterSsh.cmd(cmd) 
-
+            sleep(10)
+            count=0
             for node in nodes:
                 node.configureContainer(wait=False,autoSetDocker=self.autoSetDocker)
+                count+=1
+                if count>100:
+                    sleep(10)
+                    count=0
+            
             for node in nodes:
                 node.targetSshWaitOutput()
 
@@ -570,17 +581,26 @@ class Distrinet( Mininet ):
             for node in nodes:
                 node.waitConnected()
                 info ("connected {} ".format( node.name))
-
+            count=0
             for node in nodes:
                 info ("startshell {} ".format( node.name) )
                 node.asyncStartShell()
+                count+=1
+                if count>100:
+                    sleep(10)
+                    count=0
             for node in nodes:
                 node.waitStarted()
                 info ("startedshell {}".format( node.name))
-
+                
+            count=0
             for node in nodes:
                 info ("finalize {}".format( node.name))
                 node.finalizeStartShell()
+                count+=1
+                if count>100:
+                    sleep(10)
+                    count=0
             _info ("\n")
 
         info( '\n*** Adding links:\n' )
