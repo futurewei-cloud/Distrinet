@@ -728,6 +728,7 @@ class Distrinet( Mininet ):
        
         info( '*** cleaning master\n' )
         # XXX DSA need to find something nicer
+        self.masterSsh.cmd("ip link delete admin-br")
         for node in self.hosts + self.switches + self.controllers:
             _info ("wait {} ".format( node ))
             node.targetSshWaitOutput()
