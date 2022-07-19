@@ -304,33 +304,31 @@ class LxcNode (Node):
                 self.devices.append(bridge2)
         return cmds 
 
-    def connectToAdminNetwork(self, master, target, link_id, admin_br, wait=True, **params):
+    def connectToAdminNetwork(self, admin_ip,master, target, link_id, admin_br, wait=True, **params):
         cmds = []
-        if not self.target in self.__class__.connectedToAdminNetwork:
-            self.__class__.connectedToAdminNetwork[self.target] = True
 
-            # no need to connect admin on the same machine or if it is already connected
-            vxlan_name = "vx_{}".format(link_id)
+        # no need to connect admin on the same machine or if it is already connected
+        vxlan_name = "vx_{}".format(link_id)
 
-            # locally
-            # DSA - TODO - XXX beurk bridge2 = None
-            cmds = self.createContainerLinkCommandList(target, master, link_id, vxlan_name, bridge1=admin_br, bridge2=None)
-            #if target!=master:
-               # cmds.append("ifconfig admin_br {}".format(self.admin_ip))
-            cmd = ';'.join(cmds)
+        # locally
+        # DSA - TODO - XXX beurk bridge2 = None
+        cmds = self.createContainerLinkCommandList(target, master, link_id, vxlan_name, bridge1=admin_br, bridge2=None)
+        if target!=master:
+            cmds.append("ifconfig admin-br {}".format(admin_ip))
+        cmd = ';'.join(cmds)
 
-            if wait:
-                self.targetSsh.cmd(cmd)
-            else:
-                self.targetSsh.sendCmd(cmd)
+        if wait:
+            self.targetSsh.cmd(cmd)
+        else:
+            self.targetSsh.sendCmd(cmd)
 
-            # on master
-            # DSA - TODO - XXX beurk bridge2 = None
-            cmds = self.createContainerLinkCommandList(master, target, link_id, vxlan_name, bridge1=admin_br, bridge2=None)
-            cmd = ';'.join(cmds)
-            self.devicesMaster.append(vxlan_name)
+        # on master
+        # DSA - TODO - XXX beurk bridge2 = None
+        cmds = self.createContainerLinkCommandList(master, target, link_id, vxlan_name, bridge1=admin_br, bridge2=None)
+        cmd = ';'.join(cmds)
+        self.devicesMaster.append(vxlan_name)
 
-            self.devices.append(vxlan_name)
+        self.devices.append(vxlan_name)
 #            print ("master".format(vxlan_name),cmd)
 #            if wait:
 #                self.masternode.cmd(cmd)

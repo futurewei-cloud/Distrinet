@@ -228,7 +228,7 @@ class Distrinet( Mininet ):
         _info ("connected to master node\n")
 
 
-
+        self.connectedToAdminNetwork=set()
         self.nameToNode = {}  # name to Node (Host/Switch) objects
 
         self.terms = []  # list of spawned xterm processes
@@ -556,7 +556,12 @@ class Distrinet( Mininet ):
 
             cmds = []
             for node in nodes:
-                cmds = cmds + node.connectToAdminNetwork(master=node.masternode.host, target=node.target, link_id=CloudLink.newLinkId(), admin_br="admin-br", wait=False)
+                if node.target not in self.connectedToAdminNetwork:
+                    _ip = "{}/{}".format(ipAdd( self.adminNextIP, ipBaseNum=self.adminIpBaseNum, prefixLen=self.adminPrefixLen),self.adminPrefixLen)
+                    self.adminNextIP += 1
+                    cmds = cmds + node.connectToAdminNetwork(admin_ip=_ip,master=node.masternode.host, target=node.target, link_id=CloudLink.newLinkId(), admin_br="admin-br", wait=False)
+                    self.connectedToAdminNetwork.add(node.target)
+                    info(count)
             if len (cmds) > 0:
                 cmd = ';'.join(cmds)
                 self.masterSsh.cmd(cmd) 
