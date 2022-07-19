@@ -84,7 +84,6 @@ class LxcNode (Node):
     connectedToAdminNetwork = {}
 
     def __init__(self, name, loop,
-                       admin_ip,
                        master,
                        target=None, port=22, username=None, pub_id=None,
                        bastion=None, bastion_port=22, client_keys=None,
@@ -121,7 +120,6 @@ class LxcNode (Node):
         """
         # == distrinet
         self._preInit(loop=loop,
-                   admin_ip=admin_ip,
                    master=master,
                    target=target, port=port, username=username, pub_id=pub_id,
                    bastion=bastion, bastion_port=bastion_port, client_keys=client_keys,
@@ -136,7 +134,6 @@ class LxcNode (Node):
 
     def _preInit(self,
                    loop,
-                   admin_ip,
                    master,
                    target=None, port=22, username=None, pub_id=None,
                    bastion=None, bastion_port=22, client_keys=None,
@@ -161,7 +158,6 @@ class LxcNode (Node):
         self.bastion_port = bastion_port
 
         # IP address to use to administrate the machine
-        self.admin_ip = admin_ip
 
         self.masternode = master
         self.containerInterfaces = {}
@@ -181,12 +177,13 @@ class LxcNode (Node):
         if self.target:
             self.targetSsh = ASsh(loop=self.loop, host=self.target, username=self.username, bastion=self.bastion, client_keys=self.client_keys)
         # SSH with the node
-        admin_ip = self.admin_ip
+        '''admin_ip = seddlf.admin_ip
         if "/" in admin_ip:
-                admin_ip, prefix = admin_ip.split("/")
-        self.ssh = ASsh(loop=self.loop, host=admin_ip, username=self.username, bastion=self.bastion, client_keys=self.client_keys)
+                admin_ip, prefix = admin_ip.split("/")'''
+        self.admin_ip=None
+        self.ssh = None
 
-    def configureContainer(self, adminbr="admin-br", wait=True,autoSetDocker=False):
+    def configureContainer(self,admin_ip, adminbr="admin-br", wait=True,autoSetDocker=False):
 #        # connect the node to the admin network
 #        self.addContainerInterface(intfName="admin", brname=adminbr)
 
@@ -200,8 +197,12 @@ class LxcNode (Node):
 
         # configure the node to be "SSH'able"
         cmds = []
+        self.admin_ip=admin_ip
+        if "/" in admin_ip:
+            admin_ip, prefix = admin_ip.split("/")
+        self.ssh = ASsh(loop=self.loop, host=admin_ip, username=self.username, bastion=self.bastion, client_keys=self.client_keys)
         if autoSetDocker:
-            #cmds.append("docker exec {} bash -c 'echo \"{}\" >> /root/.ssh/authorized_keys'".format(self.name, self.pub_id))
+            cmds.append("docker exec {} bash -c 'echo \"{}\" >> /root/.ssh/authorized_keys'".format(self.name, self.pub_id))
             #cmds.append("docker exec {} service ssh start".format(self.name))
             cmds.append("docker exec {} ifconfig admin {}".format(self.name,self.admin_ip))
         # configure the container to have
@@ -349,16 +350,16 @@ class LxcNode (Node):
         # initialise the container
         if autoSetDocker:
             if self.image=="ubuntu":
-                cmd = "docker create -v /root/alcor-control-agent/:/mnt/host/code -it --privileged --cap-add=NET_ADMIN --cap-add=SYS_PTRACE --security-opt seccomp=unconfined --name {} --net=none {} /bin/bash".format(self.name, self.image)
+                cmd = "docker create -v /root/alcor-control-agent/:/mnt/host/code -it --privileged --cap-add=NET_ADMIN --cap-add=SYS_PTRACE --security-opt seccomp=unconfined --name {} --net=none {} ".format(self.name, self.image)
             else:
-                cmd="docker create -it --privileged --cap-add=NET_ADMIN --cap-add=SYS_PTRACE --security-opt seccomp=unconfined --name {} --net=none {} /bin/bash".format(self.name, self.image) 
+                cmd="docker create -it --privileged --cap-add=NET_ADMIN --cap-add=SYS_PTRACE --security-opt seccomp=unconfined --name {} --net=none {} ".format(self.name, self.image) 
         else:
             cmd = "lxc init {} {} < /dev/null ".format(self.image, self.name)
         info("{}\n".format(cmd))
         cmds.append(cmd)
         # limit resources
         if autoSetDocker:
-            cmds.append("docker start {};docker exec {} service ssh start".format(self.name,self.name))
+            cmds.append("docker start {}".format(self.name,self.name))
             if self.cpu:
             #cmds.append("lxc config set {} limits.cpu {}".format(self.name, self.cpu))
                 cmds.append("docker container update --cpuset-cpus={} {}".format(self.cpu, self.name))

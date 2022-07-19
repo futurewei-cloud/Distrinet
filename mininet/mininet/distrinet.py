@@ -486,11 +486,10 @@ class Distrinet( Mininet ):
 
         # == Hosts ===========================================================
         for hostName in topo.hosts():
-            _ip = "{}/{}".format(ipAdd( self.adminNextIP, ipBaseNum=self.adminIpBaseNum, prefixLen=self.adminPrefixLen),self.adminPrefixLen)
-            self.adminNextIP += 1
+            ''' _ip = "{}/{}".format(ipAdd( self.adminNextIP, ipBaseNum=self.adminIpBaseNum, prefixLen=self.adminPrefixLen),self.adminPrefixLen)
+            self.adminNextIP += 1'''
 #            __ip= newAdminIp(admin_ip)
             self.addHost( name=hostName,
-                    admin_ip= _ip,
                     loop=self.loop,
                     master=self.masterSsh,
                     username=self.user,
@@ -502,10 +501,9 @@ class Distrinet( Mininet ):
 
         info( '\n*** Adding switches:\n' )
         for switchName in topo.switches():
-            _ip = "{}/{}".format(ipAdd( self.adminNextIP, ipBaseNum=self.adminIpBaseNum, prefixLen=self.adminPrefixLen),self.adminPrefixLen)
-            self.adminNextIP += 1
+            '''_ip = "{}/{}".format(ipAdd( self.adminNextIP, ipBaseNum=self.adminIpBaseNum, prefixLen=self.adminPrefixLen),self.adminPrefixLen)
+            self.adminNextIP += 1'''
             self.addSwitch( name=switchName,
-                    admin_ip=_ip,
                     loop=self.loop,
                     master=self.masterSsh,
                     username=self.user,
@@ -533,8 +531,8 @@ class Distrinet( Mininet ):
                 _info ("createContainer {} ".format( node.name))
                 node.createContainer(autoSetDocker=self.autoSetDocker)
                 count += 1
-                if count > 50:
-                    output("50 nodes created...\n")
+                if count > 100:
+                    output("100 nodes created...\n")
                     sleep(10)
                     count = 0
 
@@ -542,9 +540,14 @@ class Distrinet( Mininet ):
                 node.waitCreated()
                 _info ("createdContainer {} ".format(node.name))
             _info ("nodes created\n")
+            count=0
             for node in nodes:
                 _info ("create admin interface {} ".format( node.name))
                 node.addContainerInterface(intfName="admin", brname="admin-br", wait=False,autoSetDocker=self.autoSetDocker)
+                count+=1
+                if count>100:
+                    sleep(10)
+                    count=0
 
             for node in nodes:
                 node.targetSshWaitOutput()
@@ -557,9 +560,16 @@ class Distrinet( Mininet ):
             if len (cmds) > 0:
                 cmd = ';'.join(cmds)
                 self.masterSsh.cmd(cmd) 
-
+            sleep(10)
+            count=0
             for node in nodes:
-                node.configureContainer(wait=False,autoSetDocker=self.autoSetDocker)
+                _ip = "{}/{}".format(ipAdd( self.adminNextIP, ipBaseNum=self.adminIpBaseNum, prefixLen=self.adminPrefixLen),self.adminPrefixLen)
+                self.adminNextIP += 1
+                node.configureContainer(admin_ip=_ip,wait=False,autoSetDocker=self.autoSetDocker)
+                count+=1
+                if count>100:
+                    sleep(10)
+                    count=0
             for node in nodes:
                 node.targetSshWaitOutput()
 
@@ -571,16 +581,25 @@ class Distrinet( Mininet ):
                 node.waitConnected()
                 info ("connected {} ".format( node.name))
 
+            count=0
             for node in nodes:
                 info ("startshell {} ".format( node.name) )
                 node.asyncStartShell()
+                count+=1
+                if count>100:
+                    sleep(10)
+                    count=0
             for node in nodes:
                 node.waitStarted()
                 info ("startedshell {}".format( node.name))
-
+            count=0
             for node in nodes:
                 info ("finalize {}".format( node.name))
                 node.finalizeStartShell()
+                count+=1
+                if count>100:
+                    sleep(10)
+                    count=0
             _info ("\n")
 
         info( '\n*** Adding links:\n' )
