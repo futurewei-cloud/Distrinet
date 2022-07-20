@@ -540,6 +540,19 @@ class Distrinet( Mininet ):
                 node.waitCreated()
                 _info ("createdContainer {} ".format(node.name))
             _info ("nodes created\n")
+            
+            cmds = []
+            for node in nodes:
+                if node.target not in self.connectedToAdminNetwork:
+                    _ip = "{}/{}".format(ipAdd( self.adminNextIP, ipBaseNum=self.adminIpBaseNum, prefixLen=self.adminPrefixLen),self.adminPrefixLen)
+                    self.adminNextIP += 1
+                    cmds = cmds + node.connectToAdminNetwork(admin_ip=_ip,master=node.masternode.host, target=node.target, link_id=CloudLink.newLinkId(), admin_br="admin-br", wait=False)
+                    self.connectedToAdminNetwork.add(node.target)
+            if len (cmds) > 0:
+                cmd = ';'.join(cmds)
+                self.masterSsh.cmd(cmd)
+            sleep(10)
+
             count=0
             for node in nodes:
                 _info ("create admin interface {} ".format( node.name))
@@ -554,18 +567,6 @@ class Distrinet( Mininet ):
                 _info ("admin interface created on {} ".format( node.name))
             _info ("\n")
 
-            cmds = []
-            for node in nodes:
-                if node.target not in self.connectedToAdminNetwork:
-                    _ip = "{}/{}".format(ipAdd( self.adminNextIP, ipBaseNum=self.adminIpBaseNum, prefixLen=self.adminPrefixLen),self.adminPrefixLen)
-                    self.adminNextIP += 1
-                    cmds = cmds + node.connectToAdminNetwork(admin_ip=_ip,master=node.masternode.host, target=node.target, link_id=CloudLink.newLinkId(), admin_br="admin-br", wait=False)
-                    self.connectedToAdminNetwork.add(node.target)
-                    info(count)
-            if len (cmds) > 0:
-                cmd = ';'.join(cmds)
-                self.masterSsh.cmd(cmd) 
-            sleep(10)
             count=0
             for node in nodes:
                 _ip = "{}/{}".format(ipAdd( self.adminNextIP, ipBaseNum=self.adminIpBaseNum, prefixLen=self.adminPrefixLen),self.adminPrefixLen)

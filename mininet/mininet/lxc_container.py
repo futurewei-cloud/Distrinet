@@ -306,15 +306,15 @@ class LxcNode (Node):
 
     def connectToAdminNetwork(self, admin_ip,master, target, link_id, admin_br, wait=True, **params):
         cmds = []
+        cmds.append("brctl addbr admin-br")
+        cmds.append("ifconfig admin-br {}".format(admin_ip))
 
         # no need to connect admin on the same machine or if it is already connected
         vxlan_name = "vx_{}".format(link_id)
 
         # locally
         # DSA - TODO - XXX beurk bridge2 = None
-        cmds = self.createContainerLinkCommandList(target, master, link_id, vxlan_name, bridge1=admin_br, bridge2=None)
-        if target!=master:
-            cmds.append("ifconfig admin-br {}".format(admin_ip))
+        cmds =cmds + self.createContainerLinkCommandList(target, master, link_id, vxlan_name, bridge1=admin_br, bridge2=None)
         cmd = ';'.join(cmds)
 
         if wait:
@@ -396,12 +396,12 @@ class LxcNode (Node):
         Add the interface with name intfName to the container that is
         associated to the bridge named name-intfName-br on the host
         """
+        cmds=[]
         if devicename is None:
             devicename = genIntfName()
         if brname is None:
             brname = genIntfName()
-        cmds = []
-        cmds.append("brctl addbr {}".format(brname))
+            cmds.append("brctl addbr {}".format(brname))
         if autoSetDocker:
             cmds.append("ip link add {} type veth peer name {}".format("veth"+devicename,devicename))
             cmds.append("brctl addif {} {}".format(brname,devicename))
