@@ -84,7 +84,6 @@ class LxcNode (Node):
     connectedToAdminNetwork = {}
 
     def __init__(self, name, loop,
-                       admin_ip,
                        master,
                        target=None, port=22, username=None, pub_id=None,
                        bastion=None, bastion_port=22, client_keys=None,
@@ -121,7 +120,6 @@ class LxcNode (Node):
         """
         # == distrinet
         self._preInit(loop=loop,
-                   admin_ip=admin_ip,
                    master=master,
                    target=target, port=port, username=username, pub_id=pub_id,
                    bastion=bastion, bastion_port=bastion_port, client_keys=client_keys,
@@ -136,7 +134,6 @@ class LxcNode (Node):
 
     def _preInit(self,
                    loop,
-                   admin_ip,
                    master,
                    target=None, port=22, username=None, pub_id=None,
                    bastion=None, bastion_port=22, client_keys=None,
@@ -161,7 +158,6 @@ class LxcNode (Node):
         self.bastion_port = bastion_port
 
         # IP address to use to administrate the machine
-        self.admin_ip = admin_ip
 
         self.masternode = master
         self.containerInterfaces = {}
@@ -181,12 +177,13 @@ class LxcNode (Node):
         if self.target:
             self.targetSsh = ASsh(loop=self.loop, host=self.target, username=self.username, bastion=self.bastion, client_keys=self.client_keys)
         # SSH with the node
-        admin_ip = self.admin_ip
+        '''admin_ip = seddlf.admin_ip
         if "/" in admin_ip:
-                admin_ip, prefix = admin_ip.split("/")
-        self.ssh = ASsh(loop=self.loop, host=admin_ip, username=self.username, bastion=self.bastion, client_keys=self.client_keys)
+                admin_ip, prefix = admin_ip.split("/")'''
+        self.admin_ip=None
+        self.ssh = None
 
-    def configureContainer(self, adminbr="admin-br", wait=True,autoSetDocker=False):
+    def configureContainer(self,admin_ip, adminbr="admin-br", wait=True,autoSetDocker=False):
 #        # connect the node to the admin network
 #        self.addContainerInterface(intfName="admin", brname=adminbr)
 
@@ -200,6 +197,10 @@ class LxcNode (Node):
 
         # configure the node to be "SSH'able"
         cmds = []
+        self.admin_ip=admin_ip
+        if "/" in admin_ip:
+            admin_ip, prefix = admin_ip.split("/")
+        self.ssh = ASsh(loop=self.loop, host=admin_ip, username=self.username, bastion=self.bastion, client_keys=self.client_keys)
         if autoSetDocker:
             cmds.append("docker exec {} bash -c 'echo \"{}\" >> /root/.ssh/authorized_keys'".format(self.name, self.pub_id))
             #cmds.append("docker exec {} service ssh start".format(self.name))
@@ -303,33 +304,31 @@ class LxcNode (Node):
                 self.devices.append(bridge2)
         return cmds 
 
-    def connectToAdminNetwork(self, master, target, link_id, admin_br, wait=True, **params):
+    def connectToAdminNetwork(self, admin_ip,master, target, link_id, admin_br, wait=True, **params):
         cmds = []
-        if not self.target in self.__class__.connectedToAdminNetwork:
-            self.__class__.connectedToAdminNetwork[self.target] = True
+        cmds.append("brctl addbr admin-br")
+        cmds.append("ifconfig admin-br {}".format(admin_ip))
 
-            # no need to connect admin on the same machine or if it is already connected
-            vxlan_name = "vx_{}".format(link_id)
+        # no need to connect admin on the same machine or if it is already connected
+        vxlan_name = "vx_{}".format(link_id)
 
-            # locally
-            # DSA - TODO - XXX beurk bridge2 = None
-            cmds = self.createContainerLinkCommandList(target, master, link_id, vxlan_name, bridge1=admin_br, bridge2=None)
-            #if target!=master:
-               # cmds.append("ifconfig admin_br {}".format(self.admin_ip))
-            cmd = ';'.join(cmds)
+        # locally
+        # DSA - TODO - XXX beurk bridge2 = None
+        cmds =cmds + self.createContainerLinkCommandList(target, master, link_id, vxlan_name, bridge1=admin_br, bridge2=None)
+        cmd = ';'.join(cmds)
 
-            if wait:
-                self.targetSsh.cmd(cmd)
-            else:
-                self.targetSsh.sendCmd(cmd)
+        if wait:
+            self.targetSsh.cmd(cmd)
+        else:
+            self.targetSsh.sendCmd(cmd)
 
-            # on master
-            # DSA - TODO - XXX beurk bridge2 = None
-            cmds = self.createContainerLinkCommandList(master, target, link_id, vxlan_name, bridge1=admin_br, bridge2=None)
-            cmd = ';'.join(cmds)
-            self.devicesMaster.append(vxlan_name)
+        # on master
+        # DSA - TODO - XXX beurk bridge2 = None
+        cmds = self.createContainerLinkCommandList(master, target, link_id, vxlan_name, bridge1=admin_br, bridge2=None)
+        cmd = ';'.join(cmds)
+        self.devicesMaster.append(vxlan_name)
 
-            self.devices.append(vxlan_name)
+        self.devices.append(vxlan_name)
 #            print ("master".format(vxlan_name),cmd)
 #            if wait:
 #                self.masternode.cmd(cmd)
@@ -349,9 +348,9 @@ class LxcNode (Node):
         # initialise the container
         if autoSetDocker:
             if self.image=="ubuntu":
-                cmd = "docker create -v /root/alcor-control-agent/:/mnt/host/code -it --privileged --cap-add=NET_ADMIN --cap-add=SYS_PTRACE --security-opt seccomp=unconfined --name {} --net=none {}".format(self.name, self.image)
+                cmd = "docker create -v /root/alcor-control-agent/:/mnt/host/code -it --privileged --cap-add=NET_ADMIN --cap-add=SYS_PTRACE --security-opt seccomp=unconfined --name {} --net=none {} ".format(self.name, self.image)
             else:
-                cmd="docker create -it --privileged --cap-add=NET_ADMIN --cap-add=SYS_PTRACE --security-opt seccomp=unconfined --name {} --net=none {}".format(self.name, self.image) 
+                cmd="docker create -it --privileged --cap-add=NET_ADMIN --cap-add=SYS_PTRACE --security-opt seccomp=unconfined --name {} --net=none {} ".format(self.name, self.image)   
         else:
             cmd = "lxc init {} {} < /dev/null ".format(self.image, self.name)
         info("{}\n".format(cmd))
@@ -397,12 +396,12 @@ class LxcNode (Node):
         Add the interface with name intfName to the container that is
         associated to the bridge named name-intfName-br on the host
         """
+        cmds=[]
         if devicename is None:
             devicename = genIntfName()
         if brname is None:
             brname = genIntfName()
-        cmds = []
-        cmds.append("brctl addbr {}".format(brname))
+            cmds.append("brctl addbr {}".format(brname))
         if autoSetDocker:
             cmds.append("ip link add {} type veth peer name {}".format("veth"+devicename,devicename))
             cmds.append("brctl addif {} {}".format(brname,devicename))
