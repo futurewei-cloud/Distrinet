@@ -350,14 +350,14 @@ class LxcNode (Node):
             if self.image=="ubuntu":
                 cmd = "docker create -v /root/alcor-control-agent/:/mnt/host/code -it --privileged --cap-add=NET_ADMIN --cap-add=SYS_PTRACE --security-opt seccomp=unconfined --name {} --net=none {} ".format(self.name, self.image)
             else:
-                cmd="docker create -it --privileged --cap-add=NET_ADMIN --cap-add=SYS_PTRACE --security-opt seccomp=unconfined --name {} --net=none {} ".format(self.name, self.image) 
+                cmd="docker create -it --privileged --cap-add=NET_ADMIN --cap-add=SYS_PTRACE --security-opt seccomp=unconfined --name {} --net=none {} ".format(self.name, self.image)   
         else:
             cmd = "lxc init {} {} < /dev/null ".format(self.image, self.name)
         info("{}\n".format(cmd))
         cmds.append(cmd)
         # limit resources
         if autoSetDocker:
-            cmds.append("docker start {}".format(self.name,self.name))
+            cmds.append("docker start {}".format(self.name))
             if self.cpu:
             #cmds.append("lxc config set {} limits.cpu {}".format(self.name, self.cpu))
                 cmds.append("docker container update --cpuset-cpus={} {}".format(self.cpu, self.name))

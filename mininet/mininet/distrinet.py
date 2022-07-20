@@ -535,7 +535,7 @@ class Distrinet( Mininet ):
                     output("100 nodes created...\n")
                     sleep(10)
                     count = 0
-
+            
             for node in nodes:
                 node.waitCreated()
                 _info ("createdContainer {} ".format(node.name))
@@ -571,25 +571,25 @@ class Distrinet( Mininet ):
             for node in nodes:
                 _ip = "{}/{}".format(ipAdd( self.adminNextIP, ipBaseNum=self.adminIpBaseNum, prefixLen=self.adminPrefixLen),self.adminPrefixLen)
                 self.adminNextIP += 1
-                node.configureContainer(admin_ip=_ip,wait=False,autoSetDocker=self.autoSetDocker)
+                node.configureContainer(admin_ip=_ip,wait=False,autoSetDocker=self.autoSetDocker
                 count+=1
                 if count>100:
                     sleep(10)
                     count=0
+                                        
             for node in nodes:
                 node.targetSshWaitOutput()
 
             for node in nodes:
                 _info ("connecting {} ".format( node.name))
                 node.connect()
-
             for node in nodes:
                 node.waitConnected()
-                info ("connected {} ".format( node.name))
+                _info ("connected {} ".format( node.name))
 
             count=0
             for node in nodes:
-                info ("startshell {} ".format( node.name) )
+                _info ("startshell {} ".format( node.name) )
                 node.asyncStartShell()
                 count+=1
                 if count>100:
@@ -597,10 +597,11 @@ class Distrinet( Mininet ):
                     count=0
             for node in nodes:
                 node.waitStarted()
-                info ("startedshell {}".format( node.name))
+                _info ("startedshell {}".format( node.name))
+                                        
             count=0
             for node in nodes:
-                info ("finalize {}".format( node.name))
+                _info ("finalize {}".format( node.name))
                 node.finalizeStartShell()
                 count+=1
                 if count>100:
