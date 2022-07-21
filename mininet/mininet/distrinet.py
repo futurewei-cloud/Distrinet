@@ -571,7 +571,7 @@ class Distrinet( Mininet ):
             for node in nodes:
                 _ip = "{}/{}".format(ipAdd( self.adminNextIP, ipBaseNum=self.adminIpBaseNum, prefixLen=self.adminPrefixLen),self.adminPrefixLen)
                 self.adminNextIP += 1
-                node.configureContainer(admin_ip=_ip,wait=False,autoSetDocker=self.autoSetDocker
+                node.configureContainer(admin_ip=_ip,wait=False,autoSetDocker=self.autoSetDocker)
                 count+=1
                 if count>100:
                     sleep(10)
