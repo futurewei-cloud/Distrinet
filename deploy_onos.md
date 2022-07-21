@@ -64,9 +64,9 @@ docker restart atomix-3
 
 ### Step5:create onos container
 ```bash
-docker run -t -d -p 6653:6653 --name onos1 onosproject/onos
-docker run -t -d -p 6654:6653 --name onos2 onosproject/onos
-docker run -t -d -p 6655:6653 --name onos3 onosproject/onos
+docker run -t -d -p 6653:6653 -e ONOS_APPS="drivers,openflow-base,netcfghostprovider,openflow,proxyarp,lldpprovider,fwd,optical-model,hostprovider,gui2" --name onos1 onosproject/onos
+docker run -t -d -p 6654:6653 -e ONOS_APPS="drivers,openflow-base,netcfghostprovider,openflow,proxyarp,lldpprovider,fwd,optical-model,hostprovider,gui2" --name onos2 onosproject/onos
+docker run -t -d -p 6655:6653 -e ONOS_APPS="drivers,openflow-base,netcfghostprovider,openflow,proxyarp,lldpprovider,fwd,optical-model,hostprovider,gui2" --name onos3 onosproject/onos
 ```
 
 ### Step6:generate onos config files
