@@ -83,7 +83,7 @@ class LxcNode (Node):
     adminNetworkCreated = False
     connectedToAdminNetwork = {}
 
-    def __init__(self, name, loop,
+    def __init__(self, name, loop, 
                        master,
                        target=None, port=22, username=None, pub_id=None,
                        bastion=None, bastion_port=22, client_keys=None,
@@ -152,7 +152,6 @@ class LxcNode (Node):
         self.username = username
         self.pub_id = pub_id
         self.client_keys = client_keys
-
         # ssh bastion information
         self.bastion = bastion
         self.bastion_port = bastion_port
@@ -202,8 +201,9 @@ class LxcNode (Node):
             admin_ip, prefix = admin_ip.split("/")
         self.ssh = ASsh(loop=self.loop, host=admin_ip, username=self.username, bastion=self.bastion, client_keys=self.client_keys)
         if autoSetDocker:
+            cmds.append("docker exec {} mkdir /root/.ssh".format(self.name))
             cmds.append("docker exec {} bash -c 'echo \"{}\" >> /root/.ssh/authorized_keys'".format(self.name, self.pub_id))
-            #cmds.append("docker exec {} service ssh start".format(self.name))
+            cmds.append("docker exec {} service ssh start".format(self.name))
             cmds.append("docker exec {} ifconfig admin {}".format(self.name,self.admin_ip))
         # configure the container to have
         else:
@@ -341,16 +341,18 @@ class LxcNode (Node):
     def waitConnectedTarget(self):
         self.targetSsh.waitConnected()
 
-    def createContainer(self,autoSetDocker=False, **params): 
+    def createContainer(self,autoSetDocker=False,providerIP=None, **params): 
 ################################################################################        time.sleep(1.0)
         info ("create container ({} {} {}) ".format(self.image, self.cpu, self.memory))
         cmds = []
+        providerIP, prefix = providerIP.split("/")
         # initialise the container
         if autoSetDocker:
             if self.image=="ubuntu":
-                cmd = "docker create -v /root/alcor-control-agent/:/mnt/host/code -it --privileged --cap-add=NET_ADMIN --cap-add=SYS_PTRACE --security-opt seccomp=unconfined --name {} --net=none {} ".format(self.name, self.image)
+                ##--privileged=true --init --cap-add=NET_ADMIN --cap-add=SYS_MODULE --cap-add=SYS_NICE jiawei96liu/cnimage:v3 bash
+                cmd = "docker create -it --privileged --cap-add=NET_ADMIN --cap-add=SYS_MODULE --cap-add=SYS_NICE --init --net network62 --ip {}  --name {} -h {} {} ".format(providerIP, self.name, self.name, self.image)
             else:
-                cmd="docker create -it --privileged --cap-add=NET_ADMIN --cap-add=SYS_PTRACE --security-opt seccomp=unconfined --name {} --net=none {} ".format(self.name, self.image)
+                cmd="docker create -it --privileged --cap-add=NET_ADMIN --cap-add=SYS_MODULE --cap-add=SYS_NICE --net=none --name {} -h {} {} ".format(self.name, self.name, self.image)
         else:
             cmd = "lxc init {} {} < /dev/null ".format(self.image, self.name)
         info("{}\n".format(cmd))

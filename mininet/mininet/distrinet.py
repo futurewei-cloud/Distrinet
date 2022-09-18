@@ -139,7 +139,7 @@ class Distrinet( Mininet ):
                   controller=LxcRemoteController, link=CloudLink, intf=TCIntf,
                   mapper=None,
                   build=True, xterms=False, cleanup=False, ipBase='10.0.0.0/8',
-                  adminIpBase='192.168.0.1/8',
+                  adminIpBase='192.168.0.1/8',providerIpBase='172.16.62.1/8',
                   autoSetMacs=False, autoSetDocker=False,autoPinCpus=False,
                   listenPort=None, waitConnected=False, waitConnectionTimeout=5, 
                   jump=None, user="root", client_keys=None, master=None, pub_id=None,
@@ -178,6 +178,11 @@ class Distrinet( Mininet ):
         # Start for address allocation
         self.nextIP = hostIP if hostIP > 0 else 1
 
+        self.providerIpBase = providerIpBase
+        self.providerIpBaseNum, self.providerPrefixLen = netParse( self.providerIpBase )
+        providerIP = ( 0xffffffff >> self.providerPrefixLen ) & self.providerIpBaseNum
+        # Start for address allocation
+        self.providerNextIP = providerIP if providerIP > 0 else 1
 
         self.adminIpBase = adminIpBase
         self.adminIpBaseNum, self.adminPrefixLen = netParse( self.adminIpBase )
@@ -221,11 +226,11 @@ class Distrinet( Mininet ):
 
         self.client_keys = client_keys
         self.masterhost = master
-        _info ("Connecting to master node\n")
+        info ("Connecting to master node\n")
         self.masterSsh = ASsh(loop=self.loop, host=self.masterhost, username=self.user, bastion=self.jump, client_keys=self.client_keys)
         self.masterSsh.connect()
         self.masterSsh.waitConnected()
-        _info ("connected to master node\n")
+        info ("connected to master node\n")
 
 
         self.connectedToAdminNetwork=set()
@@ -461,7 +466,8 @@ class Distrinet( Mininet ):
         _ip = "{}/{}".format(ipAdd(self.adminNextIP, ipBaseNum=self.adminIpBaseNum, prefixLen=self.adminPrefixLen), self.adminPrefixLen)
         self.adminNextIP += 1
         self.host.createMasterAdminNetwork(self.masterSsh, brname="admin-br", ip=_ip)
-        _info (" admin network created on {}\n".format(self.masterhost))
+        self.connectedToAdminNetwork.add(self.masterhost)
+        info (" admin network created on {}\n".format(self.masterhost))
 
 
         assert (isinstance(self.controllers, list))
@@ -489,6 +495,7 @@ class Distrinet( Mininet ):
             ''' _ip = "{}/{}".format(ipAdd( self.adminNextIP, ipBaseNum=self.adminIpBaseNum, prefixLen=self.adminPrefixLen),self.adminPrefixLen)
             self.adminNextIP += 1'''
 #            __ip= newAdminIp(admin_ip)
+            
             self.addHost( name=hostName,
                     loop=self.loop,
                     master=self.masterSsh,
@@ -529,7 +536,10 @@ class Distrinet( Mininet ):
             count = 0
             for node in nodes:
                 _info ("createContainer {} ".format( node.name))
-                node.createContainer(autoSetDocker=self.autoSetDocker)
+                _ip = "{}/{}".format(ipAdd( self.providerNextIP, ipBaseNum=self.providerIpBaseNum, prefixLen=self.providerPrefixLen),self.providerPrefixLen)
+                self.providerNextIP += 1
+                _info("providerip: {}".format(_ip))
+                node.createContainer(autoSetDocker=self.autoSetDocker,providerIP=_ip)
                 count += 1
                 if count > 100:
                     output("100 nodes created...\n")
@@ -539,7 +549,7 @@ class Distrinet( Mininet ):
             for node in nodes:
                 node.waitCreated()
                 _info ("createdContainer {} ".format(node.name))
-            _info ("nodes created\n")
+            info ("nodes created\n")
             
             cmds = []
             for node in nodes:
@@ -581,15 +591,15 @@ class Distrinet( Mininet ):
                 node.targetSshWaitOutput()
 
             for node in nodes:
-                _info ("connecting {} ".format( node.name))
+                info ("connecting {} ".format( node.name))
                 node.connect()
             for node in nodes:
                 node.waitConnected()
-                _info ("connected {} ".format( node.name))
+                info ("connected {} ".format( node.name))
 
             count=0
             for node in nodes:
-                _info ("startshell {} ".format( node.name) )
+                info ("startshell {} ".format( node.name) )
                 node.asyncStartShell()
                 count+=1
                 if count>100:
@@ -597,17 +607,17 @@ class Distrinet( Mininet ):
                     count=0
             for node in nodes:
                 node.waitStarted()
-                _info ("startedshell {}".format( node.name))
+                info ("startedshell {}".format( node.name))
                                         
             count=0
             for node in nodes:
-                _info ("finalize {}".format( node.name))
+                info ("finalize {}".format( node.name))
                 node.finalizeStartShell()
                 count+=1
                 if count>100:
                     sleep(10)
                     count=0
-            _info ("\n")
+            info ("\n")
 
         info( '\n*** Adding links:\n' )
         for srcName, dstName, params in topo.links(

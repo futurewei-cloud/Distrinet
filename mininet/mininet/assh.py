@@ -136,6 +136,7 @@ class ASsh(object):
             try:
                 async with connect(host=host, port=port) as conn:
                     self.conn = conn
+                    info ("connect for {}@{} via {}:{}: \n".format(self.username, self.host, self.bastion, port))
                     while self.run:
                         await asyncio.sleep(1)
             except Exception as e:

@@ -298,8 +298,10 @@ class DistrinetRunner( object ):
                          dest='test', help='|'.join( TESTS.keys() ) )
         opts.add_option( '--xterms', '-x', action='store_true',
                          default=False, help='spawn xterms for each node' )
-        opts.add_option( '--ipbase', '-i', type='string', default='12.0.0.0/8',
+        opts.add_option( '--ipbase', '-i', type='string', default='192.168.123.20/24',
                          help='base IP address for hosts' )
+        opts.add_option( '--providerIpbase', '-p', type='string', default='172.16.62.20/24',
+                         help='base Provider IP address for hosts' )
         opts.add_option( '--mac', action='store_true',
                          default=False, help='automatically set host MACs' )
         opts.add_option('--docker',action='store_true',
@@ -550,7 +552,7 @@ class DistrinetRunner( object ):
         if opts.workers:
             workers = opts.workers.split( ',' )
             master = workers[0]
-            workers=workers[1:]
+            
 
         if opts.workers or opts.provision or opts.placement_file_path:
             warn( '*** WARNING: Experimental cloud mode!\n'
@@ -558,7 +560,7 @@ class DistrinetRunner( object ):
             host, switch, link = LxcNode, LxcOVSSwitch, CloudLink
 
             ##
-            adminIpBase='192.168.100.1/8'
+            adminIpBase='192.168.0.1/24'
             waitConnected=False
             build=False
             if not opts.placement_file_path:
@@ -616,7 +618,7 @@ class DistrinetRunner( object ):
                   switch=switch, host=host,
                   controller=controller,
                   link=link,
-                  ipBase=opts.ipbase, inNamespace=opts.innamespace,
+                  ipBase=opts.ipbase,providerIpBase=opts.providerIpbase, inNamespace=opts.innamespace,
                   xterms=opts.xterms, autoSetMacs=opts.mac,
                   autoSetDocker=opts.docker,
                   autoStaticArp=opts.arp, autoPinCpus=opts.pin,
