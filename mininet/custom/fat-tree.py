@@ -36,7 +36,7 @@ class MyTopo(Topo):
         super(MyTopo, self).__init__()
 
         # K setting
-        K = 4
+        K = 12
 
         # S setting
         S = K//2

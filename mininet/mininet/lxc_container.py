@@ -350,7 +350,7 @@ class LxcNode (Node):
         if autoSetDocker:
             if self.image=="ubuntu":
                 ##--privileged=true --init --cap-add=NET_ADMIN --cap-add=SYS_MODULE --cap-add=SYS_NICE jiawei96liu/cnimage:v3 bash
-                cmd = "docker create -it --privileged --cap-add=NET_ADMIN --cap-add=SYS_MODULE --cap-add=SYS_NICE --init --net network62 --ip {}  --name {} -h {} {} ".format(providerIP, self.name, self.name, self.image)
+                cmd = "docker create -it --privileged --cap-add=NET_ADMIN --cap-add=SYS_MODULE --cap-add=SYS_NICE --init --net network20 --ip {}  --name {} -h {} {} ".format(providerIP, self.name, self.name, self.image)
             else:
                 cmd="docker create -it --privileged --cap-add=NET_ADMIN --cap-add=SYS_MODULE --cap-add=SYS_NICE --net=none --name {} -h {} {} ".format(self.name, self.name, self.image)
         else:
@@ -369,8 +369,6 @@ class LxcNode (Node):
 
             if self.image=="switch":
                 cmds.append("docker exec {} bash -c 'export PATH=$PATH:/usr/share/openvswitch/scripts;ovs-ctl start'".format(self.name))
-            else:
-                cmds.append("docker exec {} bash -c 'cd /mnt/host/code;/etc/init.d/openvswitch-switch restart;ovs-vswitchd --pidfile --detach'".format(self.name))
         else:
             if self.cpu:
                 cmds.append("lxc config set {} limits.cpu {}".format(self.name, self.cpu))
