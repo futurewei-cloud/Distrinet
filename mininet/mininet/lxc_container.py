@@ -182,7 +182,7 @@ class LxcNode (Node):
         self.admin_ip=None
         self.ssh = None
 
-    def configureContainer(self,admin_ip, adminbr="admin-br", wait=True,autoSetDocker=False):
+    def configureContainer(self, admin_ip, controll_ip, adminbr="admin-br", wait=True,autoSetDocker=False):
 #        # connect the node to the admin network
 #        self.addContainerInterface(intfName="admin", brname=adminbr)
 
@@ -199,12 +199,17 @@ class LxcNode (Node):
         self.admin_ip=admin_ip
         if "/" in admin_ip:
             admin_ip, prefix = admin_ip.split("/")
+        if "/" in controll_ip:
+            controll_ip, prefix = controll_ip.split("/")
         self.ssh = ASsh(loop=self.loop, host=admin_ip, username=self.username, bastion=self.bastion, client_keys=self.client_keys)
         if autoSetDocker:
             cmds.append("docker exec {} mkdir /root/.ssh".format(self.name))
             cmds.append("docker exec {} bash -c 'echo \"{}\" >> /root/.ssh/authorized_keys'".format(self.name, self.pub_id))
             cmds.append("docker exec {} service ssh start".format(self.name))
             cmds.append("docker exec {} ifconfig admin {}".format(self.name,self.admin_ip))
+            if self.image=="ubuntu":
+                print("docker network connect --ip {} network10 {}\n".format(controll_ip,self.name))
+                cmds.append("docker network connect --ip {} network10 {}".format(controll_ip,self.name))
         # configure the container to have
         else:
         #       an admin IP address
@@ -378,6 +383,10 @@ class LxcNode (Node):
             cmds.append("lxc start {}".format(self.name))
         cmd = ";".join(cmds)
         self.targetSsh.sendCmd(cmd)
+
+    def startNovacompute(self):
+        cmd="python3 docker_configer_container_cmd.py"
+        self.ssh.sendCmd(cmd)
 
     def targetSshWaitOutput(self):
         """
