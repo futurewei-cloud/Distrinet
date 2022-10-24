@@ -298,12 +298,12 @@ class DistrinetRunner( object ):
                          dest='test', help='|'.join( TESTS.keys() ) )
         opts.add_option( '--xterms', '-x', action='store_true',
                          default=False, help='spawn xterms for each node' )
-        opts.add_option( '--ipbase', '-i', type='string', default='12.12.1.6/16',
+        opts.add_option( '--ipbase', '-i', type='string', default='10.10.1.5/16',
                          help='base IP address for hosts' )
-        opts.add_option( '--providerIpbase', '-p', type='string', default='20.20.1.6/16',
+        opts.add_option( '--providerIpbase', '-p', type='string', default='20.20.1.5/16',
                          help='base Provider IP address for hosts' )
-        opts.add_option( '--controllIpbase', '-j', type='string', default='10.10.1.6/16',
-                         help='base controll IP address for hosts' )
+        '''opts.add_option( '--controllIpbase', '-j', type='string', default='10.10.1.6/16',
+                         help='base controll IP address for hosts' )'''
         opts.add_option( '--mac', action='store_true',
                          default=False, help='automatically set host MACs' )
         opts.add_option('--docker',action='store_true',
@@ -620,7 +620,7 @@ class DistrinetRunner( object ):
                   switch=switch, host=host,
                   controller=controller,
                   link=link,
-                  ipBase=opts.ipbase, providerIpBase=opts.providerIpbase, controllIpBase=opts.controllIpbase,
+                  ipBase=opts.ipbase, providerIpBase=opts.providerIpbase, 
                   inNamespace=opts.innamespace,
                   xterms=opts.xterms, autoSetMacs=opts.mac,
                   autoSetDocker=opts.docker,

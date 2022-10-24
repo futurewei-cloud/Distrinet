@@ -1,3 +1,6 @@
+---
+#
+
 - hosts      : all
   remote_user: root
   tasks      :
@@ -5,22 +8,10 @@
       apt :
         update_cache: true
         name        : python3-pip
-    - name: install basice packages
-      apt : name={{item}} state=present
-      with_items:
-        - aptitude
-        - apt-transport-https
-        - ca-certificates
-        - curl
-        - python3-setuptools
-        - python3-dev
-        - build-essential
-        - iptables
-        - software-properties-common
 
-#    - name: install python-pip
-#      apt :
-#        name        : python-pip
+    - name: install docker
+      apt :
+        name: docker.io
 
     - name: install htop
       apt :
@@ -50,37 +41,7 @@
 #      apt:
 #        name: btrfs-tools
 
-#    - name: install lxd
-#      apt:
-#        name: lxd
-
-#    - name: install lxd-client
-#      apt :
-#        name: lxd-client
-
     - name: install ryu
       apt:
         name: python3-ryu
 
-    - name: "Check if Docker-CE is installed"
-      package_facts:
-        manager: "auto"
-
-    - name: install Docker CE repos (1/3)
-      apt_key:
-        url: https://mirrors.ustc.edu.cn/docker-ce/linux/ubuntu/gpg
-        state: present
-      when: "'docker-ce' not in ansible_facts.packages"
-
-    - name: install Docker CE repos (2/3)
-      shell: add-apt-repository "deb [arch=amd64] https://mirrors.ustc.edu.cn/docker-ce/linux/ubuntu $(lsb_release -cs) stable"
-      when: "'docker-ce' not in ansible_facts.packages"
-
-    - name: install Docker CE repos (3/3)
-      apt:
-        update_cache: yes
-      when: "'docker-ce' not in ansible_facts.packages"
-
-    - name: install Docker CE
-      apt: name=docker-ce state=present
-      when: "'docker-ce' not in ansible_facts.packages"

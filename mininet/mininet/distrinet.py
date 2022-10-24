@@ -139,7 +139,7 @@ class Distrinet( Mininet ):
                   controller=LxcRemoteController, link=CloudLink, intf=TCIntf,
                   mapper=None,
                   build=True, xterms=False, cleanup=False, ipBase='10.0.0.0/8',
-                  adminIpBase='192.168.0.1/8',providerIpBase='172.16.62.1/8',controllIpBase='172.16.41.1/8',
+                  adminIpBase='192.168.0.1/8',providerIpBase='172.16.62.1/8',
                   autoSetMacs=False, autoSetDocker=False,autoPinCpus=False,
                   listenPort=None, waitConnected=False, waitConnectionTimeout=5, 
                   jump=None, user="root", client_keys=None, master=None, pub_id=None,
@@ -179,12 +179,12 @@ class Distrinet( Mininet ):
         self.nextIP = hostIP if hostIP > 0 else 1
 
         self.providerIpBase = providerIpBase
-        self.controllIpBase = controllIpBase
+        #self.controllIpBase = controllIpBase
 
-        self.controllIpBaseNum, self.controllPrefixLen = netParse( self.controllIpBase )
+        '''self.controllIpBaseNum, self.controllPrefixLen = netParse( self.controllIpBase )
         controllIP = ( 0xffffffff >> self.controllPrefixLen ) & self.controllIpBaseNum
         # Start for address allocation
-        self.controllNextIP = controllIP if controllIP > 0 else 1
+        self.controllNextIP = controllIP if controllIP > 0 else 1'''
 
         self.providerIpBaseNum, self.providerPrefixLen = netParse( self.providerIpBase )
         providerIP = ( 0xffffffff >> self.providerPrefixLen ) & self.providerIpBaseNum
@@ -587,9 +587,9 @@ class Distrinet( Mininet ):
             for node in nodes:
                 _ip = "{}/{}".format(ipAdd( self.adminNextIP, ipBaseNum=self.adminIpBaseNum, prefixLen=self.adminPrefixLen),self.adminPrefixLen)
                 self.adminNextIP += 1
-                _controllIp = "{}/{}".format(ipAdd( self.controllNextIP, ipBaseNum=self.controllIpBaseNum, prefixLen=self.controllPrefixLen),self.controllPrefixLen)
-                self.controllNextIP += 1
-                node.configureContainer(admin_ip=_ip,controll_ip=_controllIp,wait=False,autoSetDocker=self.autoSetDocker)
+                '''_controllIp = "{}/{}".format(ipAdd( self.controllNextIP, ipBaseNum=self.controllIpBaseNum, prefixLen=self.controllPrefixLen),self.controllPrefixLen)
+                self.controllNextIP += 1'''
+                node.configureContainer(admin_ip=_ip,wait=False,autoSetDocker=self.autoSetDocker)
                 count+=1
                 if count>100:
                     sleep(10)
