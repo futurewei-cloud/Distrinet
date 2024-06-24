@@ -1,0 +1,16 @@
+---
+
+- hosts      : all
+  remote_user: root
+  tasks      :
+    - name   : create switch image
+      command: docker pull jiawei96liu/hificnet-switch:generic-v1 
+
+    - name   : create ubuntu18.04 image
+      command: docker pull jiawei96liu/hificnet-ubuntu:openstack-v1
+    
+    - name   : update ubuntu tag
+      command: docker tag jiawei96liu/hificnet-ubuntu:openstack-v1 ubuntu
+
+    - name   : update switch tag
+      command: docker tag jiawei96liu/hificnet-switch:generic-v1 switch

@@ -38,7 +38,6 @@ from mininet.cloudlink import CloudLink
 class LxcNode (Node):
     """
     SSH node
-
     Attributes
     ----------
     name : str
@@ -75,7 +74,6 @@ class LxcNode (Node):
         STDOUT of the process
     stderr : asyncssh.stream.SSHReader
         STDERR of the process
-
     master : ASsh
         SSH connection to the master
     containerInterfaces : dict
@@ -85,8 +83,7 @@ class LxcNode (Node):
     adminNetworkCreated = False
     connectedToAdminNetwork = {}
 
-    def __init__(self, name, loop,
-                       admin_ip,
+    def __init__(self, name, loop, 
                        master,
                        target=None, port=22, username=None, pub_id=None,
                        bastion=None, bastion_port=22, client_keys=None,
@@ -123,7 +120,6 @@ class LxcNode (Node):
         """
         # == distrinet
         self._preInit(loop=loop,
-                   admin_ip=admin_ip,
                    master=master,
                    target=target, port=port, username=username, pub_id=pub_id,
                    bastion=bastion, bastion_port=bastion_port, client_keys=client_keys,
@@ -138,7 +134,6 @@ class LxcNode (Node):
 
     def _preInit(self,
                    loop,
-                   admin_ip,
                    master,
                    target=None, port=22, username=None, pub_id=None,
                    bastion=None, bastion_port=22, client_keys=None,
@@ -157,13 +152,11 @@ class LxcNode (Node):
         self.username = username
         self.pub_id = pub_id
         self.client_keys = client_keys
-
         # ssh bastion information
         self.bastion = bastion
         self.bastion_port = bastion_port
 
         # IP address to use to administrate the machine
-        self.admin_ip = admin_ip
 
         self.masternode = master
         self.containerInterfaces = {}
@@ -183,12 +176,13 @@ class LxcNode (Node):
         if self.target:
             self.targetSsh = ASsh(loop=self.loop, host=self.target, username=self.username, bastion=self.bastion, client_keys=self.client_keys)
         # SSH with the node
-        admin_ip = self.admin_ip
+        '''admin_ip = seddlf.admin_ip
         if "/" in admin_ip:
-                admin_ip, prefix = admin_ip.split("/")
-        self.ssh = ASsh(loop=self.loop, host=admin_ip, username=self.username, bastion=self.bastion, client_keys=self.client_keys)
+                admin_ip, prefix = admin_ip.split("/")'''
+        self.admin_ip=None
+        self.ssh = None
 
-    def configureContainer(self, adminbr="admin-br", wait=True):
+    def configureContainer(self, admin_ip, adminbr="admin-br", wait=True,autoSetDocker=False):
 #        # connect the node to the admin network
 #        self.addContainerInterface(intfName="admin", brname=adminbr)
 
@@ -202,14 +196,28 @@ class LxcNode (Node):
 
         # configure the node to be "SSH'able"
         cmds = []
+        self.admin_ip=admin_ip
+        if "/" in admin_ip:
+            admin_ip, prefix = admin_ip.split("/")
+        '''if "/" in controll_ip:
+            controll_ip, prefix = controll_ip.split("/")'''
+        self.ssh = ASsh(loop=self.loop, host=admin_ip, username=self.username, bastion=self.bastion, client_keys=self.client_keys)
+        if autoSetDocker:
+            cmds.append("docker exec {} mkdir /root/.ssh".format(self.name))
+            cmds.append("docker exec {} bash -c 'echo \"{}\" >> /root/.ssh/authorized_keys'".format(self.name, self.pub_id))
+            cmds.append("docker exec {} service ssh start".format(self.name))
+            cmds.append("docker exec {} ifconfig admin {}".format(self.name,self.admin_ip))
+            '''if self.image=="ubuntu":
+                print("docker network connect --ip {} network10 {}\n".format(controll_ip,self.name))
+                cmds.append("docker network connect --ip {} network10 {}".format(controll_ip,self.name))'''
         # configure the container to have
+        else:
         #       an admin IP address
-        cmds.append("lxc exec {} -- ifconfig admin {}".format(self.name, self.admin_ip))
+            cmds.append("lxc exec {} -- ifconfig admin {}".format(self.name, self.admin_ip))
         #       a public key
-        cmds.append("lxc exec {} -- bash -c 'echo \"{}\" >> /root/.ssh/authorized_keys'".format(self.name, self.pub_id))
-        #       a ssh server
-        cmds.append("lxc exec {} -- service ssh start".format(self.name))
-
+            cmds.append("lxc exec {} -- bash -c 'echo \"{}\" >> /root/.ssh/authorized_keys'".format(self.name, self.pub_id))
+#       a ssh server
+            cmds.append("lxc exec {} -- service ssh start".format(self.name))
         cmd = ';'.join(cmds)
         if wait:
             self.targetSsh.cmd(cmd)
@@ -224,8 +232,8 @@ class LxcNode (Node):
         cmd = ";".join(cmds)
         master.cmd(cmd)
 
-    import re
 
+    import re
     def _findNameIP(self, name):
         """
         Resolves name to IP as seen by the eyeball
@@ -301,31 +309,31 @@ class LxcNode (Node):
                 self.devices.append(bridge2)
         return cmds 
 
-    def connectToAdminNetwork(self, master, target, link_id, admin_br, wait=True, **params):
+    def connectToAdminNetwork(self, admin_ip,master, target, link_id, admin_br, wait=True, **params):
         cmds = []
-        if not self.target in self.__class__.connectedToAdminNetwork:
-            self.__class__.connectedToAdminNetwork[self.target] = True
+        cmds.append("brctl addbr admin-br")
+        cmds.append("ifconfig admin-br {}".format(admin_ip))
 
-            # no need to connect admin on the same machine or if it is already connected
-            vxlan_name = "vx_{}".format(link_id)
+        # no need to connect admin on the same machine or if it is already connected
+        vxlan_name = "vx_{}".format(link_id)
 
-            # locally
-            # DSA - TODO - XXX beurk bridge2 = None
-            cmds = self.createContainerLinkCommandList(target, master, link_id, vxlan_name, bridge1=admin_br, bridge2=None)
-            cmd = ';'.join(cmds)
+        # locally
+        # DSA - TODO - XXX beurk bridge2 = None
+        cmds =cmds + self.createContainerLinkCommandList(target, master, link_id, vxlan_name, bridge1=admin_br, bridge2=None)
+        cmd = ';'.join(cmds)
 
-            if wait:
-                self.targetSsh.cmd(cmd)
-            else:
-                self.targetSsh.sendCmd(cmd)
+        if wait:
+            self.targetSsh.cmd(cmd)
+        else:
+            self.targetSsh.sendCmd(cmd)
 
-            # on master
-            # DSA - TODO - XXX beurk bridge2 = None
-            cmds = self.createContainerLinkCommandList(master, target, link_id, vxlan_name, bridge1=admin_br, bridge2=None)
-            cmd = ';'.join(cmds)
-            self.devicesMaster.append(vxlan_name)
+        # on master
+        # DSA - TODO - XXX beurk bridge2 = None
+        cmds = self.createContainerLinkCommandList(master, target, link_id, vxlan_name, bridge1=admin_br, bridge2=None)
+        cmd = ';'.join(cmds)
+        self.devicesMaster.append(vxlan_name)
 
-            self.devices.append(vxlan_name)
+        self.devices.append(vxlan_name)
 #            print ("master".format(vxlan_name),cmd)
 #            if wait:
 #                self.masternode.cmd(cmd)
@@ -338,26 +346,47 @@ class LxcNode (Node):
     def waitConnectedTarget(self):
         self.targetSsh.waitConnected()
 
-    def createContainer(self, **params): 
+    def createContainer(self,autoSetDocker=False,providerIP=None, **params): 
 ################################################################################        time.sleep(1.0)
         info ("create container ({} {} {}) ".format(self.image, self.cpu, self.memory))
         cmds = []
+        providerIP, prefix = providerIP.split("/")
         # initialise the container
-        cmd = "lxc init {} {} < /dev/null ".format(self.image, self.name)
-        info ("{}\n".format(cmd))
+        if autoSetDocker:
+            if self.image=="ubuntu":
+                ##--privileged=true --init --cap-add=NET_ADMIN --cap-add=SYS_MODULE --cap-add=SYS_NICE jiawei96liu/cnimage:v3 bash
+                cmd = "docker create -it --privileged --cap-add=NET_ADMIN --cap-add=SYS_MODULE --cap-add=SYS_NICE --init --net network20 --ip {}  --name {} -h {} {} ".format(providerIP, self.name, self.name, self.image)
+            else:
+                cmd="docker create -it --privileged --cap-add=NET_ADMIN --cap-add=SYS_MODULE --cap-add=SYS_NICE --net=none --name {} -h {} {} ".format(self.name, self.name, self.image)
+        else:
+            cmd = "lxc init {} {} < /dev/null ".format(self.image, self.name)
+        info("{}\n".format(cmd))
         cmds.append(cmd)
-
         # limit resources
-        if self.cpu:
-            cmds.append("lxc config set {} limits.cpu {}".format(self.name, self.cpu))
-        if self.memory:
-            cmds.append("lxc config set {} limits.memory {}".format(self.name, self.memory))
+        if autoSetDocker:
+            cmds.append("docker start {}".format(self.name))
+            if self.cpu:
+            #cmds.append("lxc config set {} limits.cpu {}".format(self.name, self.cpu))
+                cmds.append("docker container update --cpuset-cpus={} {}".format(self.cpu, self.name))
+            if self.memory:
+            #cmds.append("lxc config set {} limits.memory {}".format(self.name, self.memory))
+                cmds.append("docker container update -m {} {}".format(self.memory, self.name))
 
-        # start the container
-        cmds.append("lxc start {}".format(self.name))
-
+            if self.image=="switch":
+                cmds.append("docker exec {} bash -c 'export PATH=$PATH:/usr/share/openvswitch/scripts;ovs-ctl start'".format(self.name))
+        else:
+            if self.cpu:
+                cmds.append("lxc config set {} limits.cpu {}".format(self.name, self.cpu))
+            if self.memory:
+                cmds.append("lxc config set {} limits.memory {}".format(self.name, self.memory))
+            # start the container
+            cmds.append("lxc start {}".format(self.name))
         cmd = ";".join(cmds)
         self.targetSsh.sendCmd(cmd)
+
+    def startNovacompute(self):
+        cmd="python3 docker_configer_container_cmd.py"
+        self.ssh.sendCmd(cmd)
 
     def targetSshWaitOutput(self):
         """
@@ -371,20 +400,29 @@ class LxcNode (Node):
         info ("container created")
 
 
-    def addContainerInterface(self, intfName, devicename=None, brname=None, wait=True, **params):
+    def addContainerInterface(self, intfName, devicename=None, brname=None, wait=True, autoSetDocker=False,**params):
         """
         Add the interface with name intfName to the container that is
         associated to the bridge named name-intfName-br on the host
         """
+        cmds=[]
         if devicename is None:
             devicename = genIntfName()
         if brname is None:
             brname = genIntfName()
-        cmds = []
-        cmds.append("brctl addbr {}".format(brname))
-        cmds.append("lxc network attach {} {} {} {}".format(brname, self.name, devicename, intfName))
+            cmds.append("brctl addbr {}".format(brname))
+        if autoSetDocker:
+            cmds.append("ip link add {} type veth peer name {}".format("veth"+devicename,devicename))
+            cmds.append("brctl addif {} {}".format(brname,devicename))
+            cmds.append("ip link set up {}".format(devicename))
+            cmds.append("{}=$(docker inspect -f '{{{{.State.Pid}}}}' {})".format(self.name,self.name))
+            cmds.append("ln -s /proc/{}/ns/net /var/run/netns/${}".format("$"+self.name,self.name))
+            cmds.append("ip link set {} netns ${}".format("veth"+devicename,self.name))
+            cmds.append("ip netns exec ${} ip link set dev {} name {}".format(self.name,"veth"+devicename,intfName))
+            cmds.append("ip netns exec ${} ip link set {} up".format(self.name,intfName))
+        else:
+            cmds.append("lxc network attach {} {} {} {}".format(brname, self.name, devicename, intfName))
         cmds.append("ip link set up {}".format(brname))
-
         cmd = ";".join(cmds)
 
         if wait:
@@ -511,14 +549,16 @@ class LxcNode (Node):
     # Subshell I/O, commands and control
 
     # XXX - OK
-    def terminate( self ):
+    def terminate( self ,autoSetDocker=False):
         "Send kill signal to Node and clean up after it."
         self.unmountPrivateDirs()
 
         cmds = []
         # destroy the container
-        cmds.append("lxc delete {} --force".format(self.name))
-
+        if autoSetDocker:
+            cmds.append("docker rm -f {}".format(self.name))
+        else:
+            cmds.append("lxc delete {} --force".format(self.name))
         # remove all locally made devices
         for device in self.devices:
             cmds.append("ip link delete {}".format(device))

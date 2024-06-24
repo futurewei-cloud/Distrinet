@@ -139,8 +139,8 @@ class Distrinet( Mininet ):
                   controller=LxcRemoteController, link=CloudLink, intf=TCIntf,
                   mapper=None,
                   build=True, xterms=False, cleanup=False, ipBase='10.0.0.0/8',
-                  adminIpBase='192.168.0.1/8',
-                  autoSetMacs=False, autoPinCpus=False,
+                  adminIpBase='192.168.0.1/8',providerIpBase='172.16.62.1/8',
+                  autoSetMacs=False, autoSetDocker=False,autoPinCpus=False,
                   listenPort=None, waitConnected=False, waitConnectionTimeout=5, 
                   jump=None, user="root", client_keys=None, master=None, pub_id=None,
                   **kwargs):
@@ -178,6 +178,18 @@ class Distrinet( Mininet ):
         # Start for address allocation
         self.nextIP = hostIP if hostIP > 0 else 1
 
+        self.providerIpBase = providerIpBase
+        #self.controllIpBase = controllIpBase
+
+        '''self.controllIpBaseNum, self.controllPrefixLen = netParse( self.controllIpBase )
+        controllIP = ( 0xffffffff >> self.controllPrefixLen ) & self.controllIpBaseNum
+        # Start for address allocation
+        self.controllNextIP = controllIP if controllIP > 0 else 1'''
+
+        self.providerIpBaseNum, self.providerPrefixLen = netParse( self.providerIpBase )
+        providerIP = ( 0xffffffff >> self.providerPrefixLen ) & self.providerIpBaseNum
+        # Start for address allocation
+        self.providerNextIP = providerIP if providerIP > 0 else 1
 
         self.adminIpBase = adminIpBase
         self.adminIpBaseNum, self.adminPrefixLen = netParse( self.adminIpBase )
@@ -190,6 +202,7 @@ class Distrinet( Mininet ):
         self.xterms = xterms
         self.cleanup = cleanup
         self.autoSetMacs = autoSetMacs
+        self.autoSetDocker=autoSetDocker
 #        self.autoStaticArp = autoStaticArp
         self.autoPinCpus = autoPinCpus
 #        self.numCores = numCores()
@@ -220,14 +233,14 @@ class Distrinet( Mininet ):
 
         self.client_keys = client_keys
         self.masterhost = master
-        _info ("Connecting to master node\n")
+        info ("Connecting to master node\n")
         self.masterSsh = ASsh(loop=self.loop, host=self.masterhost, username=self.user, bastion=self.jump, client_keys=self.client_keys)
         self.masterSsh.connect()
         self.masterSsh.waitConnected()
-        _info ("connected to master node\n")
+        info ("connected to master node\n")
 
 
-
+        self.connectedToAdminNetwork=set()
         self.nameToNode = {}  # name to Node (Host/Switch) objects
 
         self.terms = []  # list of spawned xterm processes
@@ -387,7 +400,7 @@ class Distrinet( Mininet ):
         # Set default MAC - this should probably be in Link
         options.setdefault( 'addr1', self.randMac() )
         options.setdefault( 'addr2', self.randMac() )
-       
+        options.setdefault('autoSetDocker',self.autoSetDocker)
         params1 = None
         params2 = None
         if self.mapper:
@@ -460,7 +473,8 @@ class Distrinet( Mininet ):
         _ip = "{}/{}".format(ipAdd(self.adminNextIP, ipBaseNum=self.adminIpBaseNum, prefixLen=self.adminPrefixLen), self.adminPrefixLen)
         self.adminNextIP += 1
         self.host.createMasterAdminNetwork(self.masterSsh, brname="admin-br", ip=_ip)
-        _info (" admin network created on {}\n".format(self.masterhost))
+        self.connectedToAdminNetwork.add(self.masterhost)
+        info (" admin network created on {}\n".format(self.masterhost))
 
 
         assert (isinstance(self.controllers, list))
@@ -485,11 +499,11 @@ class Distrinet( Mininet ):
 
         # == Hosts ===========================================================
         for hostName in topo.hosts():
-            _ip = "{}/{}".format(ipAdd( self.adminNextIP, ipBaseNum=self.adminIpBaseNum, prefixLen=self.adminPrefixLen),self.adminPrefixLen)
-            self.adminNextIP += 1
+            ''' _ip = "{}/{}".format(ipAdd( self.adminNextIP, ipBaseNum=self.adminIpBaseNum, prefixLen=self.adminPrefixLen),self.adminPrefixLen)
+            self.adminNextIP += 1'''
 #            __ip= newAdminIp(admin_ip)
+            
             self.addHost( name=hostName,
-                    admin_ip= _ip,
                     loop=self.loop,
                     master=self.masterSsh,
                     username=self.user,
@@ -501,10 +515,9 @@ class Distrinet( Mininet ):
 
         info( '\n*** Adding switches:\n' )
         for switchName in topo.switches():
-            _ip = "{}/{}".format(ipAdd( self.adminNextIP, ipBaseNum=self.adminIpBaseNum, prefixLen=self.adminPrefixLen),self.adminPrefixLen)
-            self.adminNextIP += 1
+            '''_ip = "{}/{}".format(ipAdd( self.adminNextIP, ipBaseNum=self.adminIpBaseNum, prefixLen=self.adminPrefixLen),self.adminPrefixLen)
+            self.adminNextIP += 1'''
             self.addSwitch( name=switchName,
-                    admin_ip=_ip,
                     loop=self.loop,
                     master=self.masterSsh,
                     username=self.user,
@@ -518,7 +531,7 @@ class Distrinet( Mininet ):
         if not waitStart:
             nodes = self.hosts + self.switches
 
-            _info ("[starting\n")
+            info ("[starting\n")
             for node in nodes:
                 _info ("connectTarget {} ".format( node.name))
                 node.connectTarget()
@@ -530,57 +543,92 @@ class Distrinet( Mininet ):
             count = 0
             for node in nodes:
                 _info ("createContainer {} ".format( node.name))
-                node.createContainer()
+                _ip = "{}/{}".format(ipAdd( self.providerNextIP, ipBaseNum=self.providerIpBaseNum, prefixLen=self.providerPrefixLen),self.providerPrefixLen)
+                self.providerNextIP += 1
+                node.createContainer(autoSetDocker=self.autoSetDocker,providerIP=_ip)
                 count += 1
-                if count > 50:
-                    output("50 nodes created...\n")
+                if count > 100:
+                    output("100 nodes created...\n")
                     sleep(10)
                     count = 0
-
+            
             for node in nodes:
                 node.waitCreated()
                 _info ("createdContainer {} ".format(node.name))
-           
+            info ("nodes created\n")
+            
+            cmds = []
+            for node in nodes:
+                if node.target not in self.connectedToAdminNetwork:
+                    _ip = "{}/{}".format(ipAdd( self.adminNextIP, ipBaseNum=self.adminIpBaseNum, prefixLen=self.adminPrefixLen),self.adminPrefixLen)
+                    self.adminNextIP += 1
+                    cmds = cmds + node.connectToAdminNetwork(admin_ip=_ip,master=node.masternode.host, target=node.target, link_id=CloudLink.newLinkId(), admin_br="admin-br", wait=False)
+                    self.connectedToAdminNetwork.add(node.target)
+            if len (cmds) > 0:
+                cmd = ';'.join(cmds)
+                self.masterSsh.cmd(cmd)
+            sleep(10)
+
+            count=0
             for node in nodes:
                 _info ("create admin interface {} ".format( node.name))
-                node.addContainerInterface(intfName="admin", brname="admin-br", wait=False)
+                node.addContainerInterface(intfName="admin", brname="admin-br", wait=False,autoSetDocker=self.autoSetDocker)
+                count+=1
+                if count>100:
+                    sleep(10)
+                    count=0
 
             for node in nodes:
                 node.targetSshWaitOutput()
                 _info ("admin interface created on {} ".format( node.name))
             _info ("\n")
 
-            cmds = []
+            count=0
             for node in nodes:
-                cmds = cmds + node.connectToAdminNetwork(master=node.masternode.host, target=node.target, link_id=CloudLink.newLinkId(), admin_br="admin-br", wait=False)
-            if len (cmds) > 0:
-                cmd = ';'.join(cmds)
-                self.masterSsh.cmd(cmd) 
-
-            for node in nodes:
-                node.configureContainer(wait=False)
+                _ip = "{}/{}".format(ipAdd( self.adminNextIP, ipBaseNum=self.adminIpBaseNum, prefixLen=self.adminPrefixLen),self.adminPrefixLen)
+                self.adminNextIP += 1
+                '''_controllIp = "{}/{}".format(ipAdd( self.controllNextIP, ipBaseNum=self.controllIpBaseNum, prefixLen=self.controllPrefixLen),self.controllPrefixLen)
+                self.controllNextIP += 1'''
+                node.configureContainer(admin_ip=_ip,wait=False,autoSetDocker=self.autoSetDocker)
+                count+=1
+                if count>100:
+                    sleep(10)
+                    count=0
+                                        
             for node in nodes:
                 node.targetSshWaitOutput()
 
             for node in nodes:
-                _info ("connecting {} ".format( node.name))
+                info ("connecting {} ".format( node.name))
                 node.connect()
-
             for node in nodes:
                 node.waitConnected()
-                _info ("connected {} ".format( node.name))
-
+                info ("connected {} ".format( node.name))
+            '''info ("starting nova compute") 
+            for host in self.hosts:
+                host.startNovacompute()
+            info ("started nova compute")'''
+            count=0
             for node in nodes:
-                _info ("startshell {} ".format( node.name) )
+                info ("startshell {} ".format( node.name) )
                 node.asyncStartShell()
+                count+=1
+                if count>100:
+                    sleep(10)
+                    count=0
             for node in nodes:
                 node.waitStarted()
-                _info ("startedshell {}".format( node.name))
-
+                info ("startedshell {}".format( node.name))
+                                        
+            count=0
             for node in nodes:
-                _info ("finalize {}".format( node.name))
+                info ("finalize {}".format( node.name))
                 node.finalizeStartShell()
-            _info ("\n")
+                count+=1
+                if count>100:
+                    sleep(10)
+                    count=0
+            info ("\n")
 
         info( '\n*** Adding links:\n' )
         for srcName, dstName, params in topo.links(
@@ -688,12 +736,12 @@ class Distrinet( Mininet ):
             info( switch.name + ' ' )
             if switch not in stopped:
                 switch.stop()
-            switch.terminate()
+            switch.terminate(autoSetDocker=self.autoSetDocker)
         info( '\n' )
         info( '*** Stopping %i hosts\n' % len( self.hosts ) )
         for host in self.hosts:
             info( host.name + ' ' )
-            host.terminate()
+            host.terminate(autoSetDocker=self.autoSetDocker)
 
         info( '*** Stopping %i controllers\n' % len( self.controllers ) )
         for controller in self.controllers:
@@ -703,6 +751,7 @@ class Distrinet( Mininet ):
        
         info( '*** cleaning master\n' )
         # XXX DSA need to find something nicer
+        self.masterSsh.cmd("ip link delete admin-br")
         for node in self.hosts + self.switches + self.controllers:
             _info ("wait {} ".format( node ))
             node.targetSshWaitOutput()
@@ -873,5 +922,3 @@ class MininetWithControlNet( Mininet ):
                 error( '*** Error: control network test failed\n' )
                 exit( 1 )
         info( '\n' )
-
-

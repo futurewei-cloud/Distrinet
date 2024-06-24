@@ -1,0 +1,10 @@
+---
+
+- hosts      : workers
+  gather_facts: false
+  remote_user: root
+  tasks      :
+    - name   : update ubuntu tag
+      command: python3 docker_configer_container_cmd.py 
+
+
